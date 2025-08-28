@@ -1,0 +1,129 @@
+{
+  "commands": {
+    "refactor": {
+      "description": "プロジェクト全体をリファクタリング（UIと処理に影響なし）",
+      "script": ".claude/hooks/refactor.sh",
+      "usage": "/refactor [オプション]",
+      "options": [
+        {
+          "name": "--analyze-only",
+          "description": "分析のみ実行、実際の変更は行わない"
+        },
+        {
+          "name": "--components",
+          "description": "コンポーネントのリファクタリングのみ"
+        },
+        {
+          "name": "--utils",
+          "description": "ユーティリティ関数のリファクタリングのみ"
+        },
+        {
+          "name": "--types",
+          "description": "型定義の整理のみ"
+        },
+        {
+          "name": "--all",
+          "description": "全てのリファクタリングを実行（デフォルト）"
+        }
+      ],
+      "examples": [
+        {
+          "command": "/refactor",
+          "description": "段階的リファクタリング実行（推奨）"
+        },
+        {
+          "command": "/refactor --analyze-only",
+          "description": "プロジェクト分析のみ実行"
+        },
+        {
+          "command": "/refactor --types",
+          "description": "型定義最適化のみ"
+        },
+        {
+          "command": "/refactor --components",
+          "description": "コンポーネント分割のみ"
+        }
+      ],
+      "benefits": [
+        "コードの可読性向上",
+        "保守性の向上",
+        "重複コードの削減",
+        "型安全性の強化",
+        "パフォーマンス改善",
+        "テストしやすさの向上"
+      ],
+      "safety": [
+        "UIに影響なし",
+        "既存の処理ロジックは保持",
+        "自動バックアップ作成",
+        "段階的リファクタリング可能",
+        "ドライランモード対応"
+      ]
+    },
+    "analyze": {
+      "description": "コード品質の詳細分析",
+      "script": ".claude/scripts/refactor_analyzer.py",
+      "usage": "/analyze [オプション]",
+      "options": [
+        {
+          "name": "--output",
+          "description": "レポート出力ファイル名 (デフォルト: refactor_report.md)"
+        },
+        {
+          "name": "--categories",
+          "description": "分析カテゴリ指定 (components, types, utils, imports)"
+        }
+      ],
+      "examples": [
+        {
+          "command": "/analyze",
+          "description": "全体コード分析実行"
+        },
+        {
+          "command": "/analyze --categories components types",
+          "description": "コンポーネントと型定義のみ分析"
+        }
+      ]
+    }
+  },
+  "workflows": {
+    "quality-improvement": {
+      "name": "コード品質改善ワークフロー",
+      "description": "段階的なコード品質改善プロセス",
+      "steps": [
+        {
+          "step": 1,
+          "command": "/analyze",
+          "description": "現状分析とレポート生成"
+        },
+        {
+          "step": 2,
+          "command": "/refactor --analyze-only",
+          "description": "リファクタリング影響範囲の確認"
+        },
+        {
+          "step": 3,
+          "command": "/refactor --types",
+          "description": "型安全性向上（低リスク）"
+        },
+        {
+          "step": 4,
+          "command": "/refactor --utils",
+          "description": "ユーティリティ関数共通化"
+        },
+        {
+          "step": 5,
+          "command": "/refactor --components",
+          "description": "コンポーネント分割・最適化"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2024-08-04",
+    "author": "Claude Code Assistant",
+    "project": "sedori-app",
+    "description": "UI/処理に影響しないコード品質向上のためのリファクタリングコマンド群"
+  }
+}
