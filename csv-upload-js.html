@@ -1,0 +1,90 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.querySelector('input[type="file"]');
+    const fileStatus = document.querySelector('.container-select p');
+    const uploadButton = document.querySelector('.button');
+    
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                fileStatus.textContent = `選択済み: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                fileStatus.style.color = '#155724';
+                fileStatus.style.backgroundColor = '#d4edda';
+                uploadButton.disabled = false;
+            } else {
+                fileStatus.textContent = 'CSVファイルを選択してください';
+                fileStatus.style.color = '#721c24';
+                fileStatus.style.backgroundColor = '#f8d7da';
+                uploadButton.disabled = true;
+            }
+        } else {
+            fileStatus.textContent = '選択されていません';
+            fileStatus.style.color = '#666';
+            fileStatus.style.backgroundColor = '#f9f9f9';
+            uploadButton.disabled = true;
+        }
+    });
+    
+    uploadButton.disabled = true;
+});
+
+document.getElementById('upload-button').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showStatus('ファイルが選択されていません。', 'error');
+        return;
+    }
+    
+    if (!(file.type === 'text/csv' || file.name.endsWith('.csv'))) {
+        showStatus('CSVファイルを選択してください。', 'error');
+        return;
+    }
+    
+    showStatus('CSVファイルを読み込み中...', 'info');
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const csvContent = e.target.result;
+        
+        google.script.run
+            .withSuccessHandler(onUploadSuccess)
+            .withFailureHandler(onUploadError)
+            .processCsvContent(csvContent);
+    };
+    
+    reader.readAsText(file, 'UTF-8');
+});
+
+function onUploadSuccess(result) {
+    showStatus('CSVファイルの読み込みが完了しました。', 'success');
+    setTimeout(() => {
+        google.script.host.close();
+    }, 2000);
+}
+
+function onUploadError(error) {
+    showStatus('エラー: ' + error.message, 'error');
+}
+
+function showStatus(message, type) {
+    let statusDiv = document.querySelector('.status');
+    if (!statusDiv) {
+        statusDiv = document.createElement('div');
+        statusDiv.className = 'status';
+        document.querySelector('.container').appendChild(statusDiv);
+    }
+    
+    statusDiv.textContent = message;
+    statusDiv.className = 'status ' + type;
+    statusDiv.style.display = 'block';
+}
+
+function closeDialog() {
+    google.script.host.close();
+}
+</script>

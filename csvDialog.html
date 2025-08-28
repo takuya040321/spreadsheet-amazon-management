@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <?!= HtmlService.createHtmlOutputFromFile('csv-upload-css').getContent(); ?>
+</head>
+<body>
+    <h1 class="simple-h1">CSVファイル読み込み</h1>
+    <div class="container">
+        <div class="container-select">
+            <form id='select-file'>
+                <label>
+                    <input type="file" name="selectFile" accept=".csv">CSVファイルを選択
+                </label>
+                <p>選択されていません</p>
+            </form>
+        </div>
+
+        <div class="container-upload">
+            <form id='upload-button'>
+                <div class="button-wrapper">
+                    <button type="submit" class="button">読み込み実行</button>
+                    <button type="button" class="cancel-button" onclick="closeDialog()">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?!= HtmlService.createHtmlOutputFromFile('csv-upload-js').getContent(); ?>
+</body>
+</html>
