@@ -7,12 +7,91 @@ function showCsvImportDialog() {
 
 function processCsvContent(csvContent) {
   try {
+    console.log("Processing CSV content...");
     const csvData = parseCsvContent(csvContent);
+    console.log("Parsed CSV data:", csvData.length, "rows");
     writeToAmazonSalesSheet(csvData);
+    console.log("Data written to sheet successfully");
     return { success: true, message: "CSV読み込みが完了しました。" };
   } catch (error) {
+    console.error("processCsvContent error:", error);
     throw new Error("CSVファイルの処理に失敗しました: " + error.message);
   }
+}
+
+function writeToAmazonSalesSheet(csvData) {
+  console.log("writeToAmazonSalesSheet called with", csvData.length, "rows");
+  
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName("Amazon売上");
+  
+  if (!sheet) {
+    console.log("Creating new Amazon売上 sheet");
+    sheet = spreadsheet.insertSheet("Amazon売上");
+  }
+
+  if (csvData.length === 0) {
+    throw new Error("読み込むデータがありません。");
+  }
+
+  const existingData = getExistingData(sheet);
+  const newData = filterDuplicates(csvData, existingData);
+  console.log("After duplicate filtering:", newData.length, "rows");
+
+  if (newData.length === 0) {
+    console.log("No new data to add");
+    return "重複データのため、新しいデータはありませんでした。";
+  }
+
+  const lastRow = sheet.getLastRow();
+  const startCol = 7;
+  console.log("Writing to sheet starting at row", lastRow + 1, "column", startCol);
+  
+  for (let i = 0; i < newData.length; i++) {
+    const row = newData[i];
+    const targetRow = lastRow + i + 1;
+    
+    for (let j = 0; j < row.length; j++) {
+      sheet.getRange(targetRow, startCol + j).setValue(row[j]);
+    }
+  }
+
+  console.log(`${newData.length}行のデータを「Amazon売上」シートに追加しました。`);
+  return `${newData.length}行のデータを追加しました。`;
+}
+
+function getExistingData(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) {
+    return [];
+  }
+
+  const range = sheet.getRange(1, 7, lastRow, sheet.getLastColumn() - 6);
+  return range.getValues().filter(row => row.some(cell => cell !== ""));
+}
+
+function filterDuplicates(newData, existingData) {
+  if (existingData.length === 0) {
+    return newData;
+  }
+
+  return newData.filter(newRow => {
+    return !existingData.some(existingRow => {
+      return arraysEqual(newRow, existingRow);
+    });
+  });
+}
+
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  
+  for (let i = 0; i < a.length; i++) {
+    if (String(a[i]).trim() !== String(b[i]).trim()) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 function parseCsvContent(csvContent) {
