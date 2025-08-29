@@ -89,35 +89,3 @@ function processCsvContent(csvContent) {
   }
 }
 
-// =====================
-// ユーティリティ関数
-// =====================
-
-/**
- * Google Driveファイル選択用（将来の機能拡張用）
- */
-function showDriveFileSelector() {
-  try {
-    const files = DriveApp.searchFiles('mimeType="text/csv" or name contains ".csv"');
-    const fileList = [];
-    
-    while (files.hasNext() && fileList.length < 20) {
-      const file = files.next();
-      fileList.push({
-        id: file.getId(),
-        name: file.getName(),
-        lastUpdated: file.getLastUpdated().toLocaleDateString("ja-JP")
-      });
-    }
-    
-    if (fileList.length === 0) {
-      throw new Error("CSVファイルが見つかりません。Google DriveにCSVファイルをアップロードしてください。");
-    }
-    
-    fileList.sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
-    
-    return fileList;
-  } catch (error) {
-    throw new Error("ファイル選択中にエラーが発生しました: " + error.message);
-  }
-}
