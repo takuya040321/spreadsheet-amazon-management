@@ -22,19 +22,39 @@ function processData() {
       throw new Error("処理対象のデータがありません。");
     }
     
+    // Amazon売上シートの全データを一括取得
+    const amazonData = amazonSalesSheet.getRange(3, 1, lastRow - 2, amazonSalesSheet.getLastColumn()).getValues();
+    
+    // 商品管理シートの全データを一括取得
+    const productData = getProductSheetData(productSheet);
+    
+    // 結果を格納する配列
+    const updates = [];
     let processedCount = 0;
     
-    // 3行目以降を処理対象とする
-    for (let row = 3; row <= lastRow; row++) {
-      const aValue = amazonSalesSheet.getRange(row, 1).getValue();
+    // 各行を処理
+    for (let i = 0; i < amazonData.length; i++) {
+      const row = i + 3; // 実際の行番号（3行目から開始）
+      const aValue = amazonData[i][0]; // A列の値
       
       // A列が空白の行を処理対象とする
       if (aValue === "" || aValue === null) {
-        const result = processDataRow(amazonSalesSheet, productSheet, row);
+        const result = processDataRow(amazonData[i], productData, row);
         if (result) {
+          updates.push({
+            row: row,
+            aValue: result.aValue,
+            bValue: result.bValue,
+            dValue: result.dValue
+          });
           processedCount++;
         }
       }
+    }
+    
+    // 結果を一括書き込み
+    if (updates.length > 0) {
+      batchUpdateAmazonSheet(amazonSalesSheet, updates);
     }
     
     console.log(`${processedCount}行のデータを処理しました。`);
@@ -46,14 +66,16 @@ function processData() {
   }
 }
 
-function processDataRow(amazonSalesSheet, productSheet, row) {
+function processDataRow(rowData, productData, row) {
   try {
-    const transactionType = amazonSalesSheet.getRange(row, 8).getValue(); // H列
-    const productName = amazonSalesSheet.getRange(row, 11).getValue(); // K列
-    const orderNumber = amazonSalesSheet.getRange(row, 15).getValue(); // O列
-    const sku = amazonSalesSheet.getRange(row, 16).getValue(); // P列
+    const transactionType = rowData[7]; // H列（0ベースなので7）
+    const productName = rowData[10]; // K列
+    const orderNumber = rowData[14]; // O列
+    const sku = rowData[15]; // P列
     
     console.log(`Processing row ${row}: ${transactionType}`);
+    
+    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
     
     // トランザクション種類別処理
     switch (transactionType) {
@@ -61,82 +83,94 @@ function processDataRow(amazonSalesSheet, productSheet, row) {
       case "振込み":
       case "注文外料金":
         // A列を転記対象外に設定
-        amazonSalesSheet.getRange(row, 1).setValue("転記対象外");
-        break;
+        return {
+          aValue: "転記対象外",
+          bValue: "",
+          dValue: today
+        };
         
       case "配送サービス":
         // 処理なし
-        break;
+        return {
+          aValue: "",
+          bValue: "",
+          dValue: today
+        };
         
       case "調整":
-        return processAdjustment(amazonSalesSheet, productSheet, row, productName, sku);
+        return processAdjustment(productData, row, productName, sku, today);
         
       case "返金":
-        return processRefund(amazonSalesSheet, productSheet, row, orderNumber);
+        return processRefund(productData, row, orderNumber, today);
         
       case "注文":
-        return processSKUSearch(amazonSalesSheet, productSheet, row, sku);
+        return processSKUSearch(productData, row, sku, today);
         
       default:
         console.log(`Unknown transaction type: ${transactionType}`);
-        break;
+        return {
+          aValue: "",
+          bValue: "",
+          dValue: today
+        };
     }
-    
-    // 処理日記録
-    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
-    amazonSalesSheet.getRange(row, 4).setValue(today); // D列
-    
-    return true;
     
   } catch (error) {
     console.error(`Error processing row ${row}:`, error);
-    return false;
+    return null;
   }
 }
 
-function processAdjustment(amazonSalesSheet, productSheet, row, productName, sku) {
+function processAdjustment(productData, row, productName, sku, today) {
   if (productName && productName.includes("FBA在庫の返金 - 購入者による返品:")) {
     // A列を転記対象外に設定
-    amazonSalesSheet.getRange(row, 1).setValue("転記対象外");
+    return {
+      aValue: "転記対象外",
+      bValue: "",
+      dValue: today
+    };
   } else {
     // 紛失関連の処理：SKU検索・行番号記録
-    return processSKUSearch(amazonSalesSheet, productSheet, row, sku);
+    return processSKUSearch(productData, row, sku, today);
   }
-  return true;
 }
 
-function processRefund(amazonSalesSheet, productSheet, row, orderNumber) {
+function processRefund(productData, row, orderNumber, today) {
   if (!orderNumber) {
     console.log(`Row ${row}: No order number found, skipping`);
-    return false;
+    return null;
   }
   
   // 注文番号検索・ステータス更新処理
-  const foundRow = searchOrderNumber(productSheet, orderNumber);
+  const foundRow = searchOrderNumberInArray(productData, orderNumber);
   if (foundRow) {
-    amazonSalesSheet.getRange(row, 1).setValue(foundRow); // A列に行番号記録
-    amazonSalesSheet.getRange(row, 2).setValue("返金"); // B列にステータス記録
-    return true;
+    return {
+      aValue: foundRow,
+      bValue: "返金",
+      dValue: today
+    };
   } else {
     console.log(`Row ${row}: Order number ${orderNumber} not found, skipping`);
-    return false;
+    return null;
   }
 }
 
-function processSKUSearch(amazonSalesSheet, productSheet, row, sku) {
+function processSKUSearch(productData, row, sku, today) {
   if (!sku) {
     console.log(`Row ${row}: No SKU found, skipping`);
-    return false;
+    return null;
   }
   
-  const foundRow = searchSKU(productSheet, sku);
+  const foundRow = searchSKUInArray(productData, sku);
   if (foundRow) {
-    amazonSalesSheet.getRange(row, 1).setValue(foundRow); // A列に行番号記録
-    amazonSalesSheet.getRange(row, 2).setValue("販売"); // B列にステータス記録
-    return true;
+    return {
+      aValue: foundRow,
+      bValue: "販売",
+      dValue: today
+    };
   } else {
     console.log(`Row ${row}: SKU ${sku} not found, skipping`);
-    return false;
+    return null;
   }
 }
 
@@ -197,4 +231,110 @@ function getColumnByHeader(sheet, headerName) {
   }
   
   throw new Error(`Header "${headerName}" not found`);
+}
+
+function getProductSheetData(productSheet) {
+  const lastRow = productSheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  
+  return productSheet.getRange(2, 1, lastRow - 1, productSheet.getLastColumn()).getValues();
+}
+
+function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
+  // A列、B列、D列の更新を一括で実行
+  const aUpdates = [];
+  const bUpdates = [];
+  const dUpdates = [];
+  
+  updates.forEach(update => {
+    if (update.aValue !== "") {
+      aUpdates.push([update.row, 1, update.aValue]);
+    }
+    if (update.bValue !== "") {
+      bUpdates.push([update.row, 2, update.bValue]);
+    }
+    if (update.dValue !== "") {
+      dUpdates.push([update.row, 4, update.dValue]);
+    }
+  });
+  
+  // バッチ更新実行
+  if (aUpdates.length > 0) {
+    aUpdates.forEach(([row, col, value]) => {
+      amazonSalesSheet.getRange(row, col).setValue(value);
+    });
+  }
+  
+  if (bUpdates.length > 0) {
+    bUpdates.forEach(([row, col, value]) => {
+      amazonSalesSheet.getRange(row, col).setValue(value);
+    });
+  }
+  
+  if (dUpdates.length > 0) {
+    dUpdates.forEach(([row, col, value]) => {
+      amazonSalesSheet.getRange(row, col).setValue(value);
+    });
+  }
+}
+
+function searchSKUInArray(productData, sku) {
+  for (let i = 0; i < productData.length; i++) {
+    const row = i + 2; // 実際の行番号（2行目から開始）
+    const skuColumnIndex = getSKUColumnIndex(); // SKU列のインデックスを取得
+    const sheetSku = productData[i][skuColumnIndex];
+    const status = getProductStatusFromArray(productData[i]);
+    
+    // 「4.販売/処分済」以外のステータスを検索対象とする
+    if (String(sheetSku).trim() === String(sku).trim() && status !== "4.販売/処分済") {
+      return row;
+    }
+  }
+  
+  return null;
+}
+
+function searchOrderNumberInArray(productData, orderNumber) {
+  for (let i = 0; i < productData.length; i++) {
+    const row = i + 2; // 実際の行番号
+    const orderColumnIndex = getOrderNumberColumnIndex(); // 注文番号列のインデックスを取得
+    const sheetOrderNumber = productData[i][orderColumnIndex];
+    
+    if (String(sheetOrderNumber).trim() === String(orderNumber).trim()) {
+      return row;
+    }
+  }
+  
+  return null;
+}
+
+function getProductStatusFromArray(rowData) {
+  // IFS関数による動的ステータス計算の実装（0ベースインデックス）
+  const zCol = rowData[25]; // Z列（26列目）
+  const aaCol = rowData[26]; // AA列（27列目）
+  const afCol = rowData[31]; // AF列（32列目）
+  
+  if (afCol === true) {
+    return "4.販売/処分済";
+  } else if (aaCol === true) {
+    return "3.販売中";
+  } else if (zCol === true) {
+    return "2.受領/検品済";
+  } else {
+    return "1.商品未受領";
+  }
+}
+
+function getSKUColumnIndex() {
+  // SKU列のインデックスを返す（商品管理シートの構造に依存）
+  // 実際のシート構造に合わせて調整が必要
+  return 5; // 仮の値、実際の列位置に合わせて変更
+}
+
+function getOrderNumberColumnIndex() {
+  // 注文番号列のインデックスを返す（商品管理シートの構造に依存）
+  // 実際のシート構造に合わせて調整が必要
+  return 10; // 仮の値、実際の列位置に合わせて変更
 }
