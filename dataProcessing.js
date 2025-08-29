@@ -70,8 +70,8 @@ function processDataRow(rowData, productData, row) {
   try {
     const transactionType = rowData[7]; // H列（0ベースなので7）
     const productName = rowData[10]; // K列
-    const orderNumber = rowData[14]; // O列
-    const sku = rowData[15]; // P列
+    const orderNumber = rowData[11]; // L列（0ベースなので11）
+    const sku = rowData[9]; // J列（0ベースなので9）
     
     console.log(`Processing row ${row}: ${transactionType}`);
     
