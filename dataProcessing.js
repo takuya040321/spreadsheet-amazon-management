@@ -28,8 +28,8 @@ function processData() {
     for (let row = 3; row <= lastRow; row++) {
       const aValue = amazonSalesSheet.getRange(row, 1).getValue();
       
-      // A列が空白でない行を処理対象とする
-      if (aValue !== "" && aValue !== null) {
+      // A列が空白の行を処理対象とする
+      if (aValue === "" || aValue === null) {
         const result = processDataRow(amazonSalesSheet, productSheet, row);
         if (result) {
           processedCount++;
