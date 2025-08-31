@@ -12,7 +12,10 @@
  */
 function handleCsvImport() {
   try {
-    showCsvImportDialog();
+    const htmlOutput = HtmlService.createHtmlOutputFromFile("csvDialog")
+      .setWidth(500)
+      .setHeight(400);
+    SpreadsheetApp.getUi().showModalDialog(htmlOutput, "CSV読み込み");
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
     console.error("CSV読込エラー:", error);
@@ -45,19 +48,6 @@ function handleTransfer() {
   }
 }
 
-// =====================
-// ダイアログ関数
-// =====================
-
-/**
- * CSV読込ダイアログを表示
- */
-function showCsvImportDialog() {
-  const htmlOutput = HtmlService.createHtmlOutputFromFile("csvDialog")
-    .setWidth(500)
-    .setHeight(400);
-  SpreadsheetApp.getUi().showModalDialog(htmlOutput, "CSV読み込み");
-}
 
 /**
  * CSVコンテンツ処理（ダイアログから呼び出される）
