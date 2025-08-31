@@ -1,20 +1,7 @@
 /**
  * UI機能とボタンハンドラー
- * 各機能をボタンから呼び出すためのインターフェース
+ * セル上の画像ボタンから各機能を呼び出すためのインターフェース
  */
-
-// =====================
-// メインUI関数
-// =====================
-
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu("Amazon売上管理")
-    .addItem("1. CSVファイル読込", "handleCsvImport")
-    .addItem("2. データ処理", "handleDataProcessing")
-    .addItem("3. 商品管理転記", "handleTransfer")
-    .addToUi();
-}
 
 // =====================
 // ボタンハンドラー関数
