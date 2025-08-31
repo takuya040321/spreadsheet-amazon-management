@@ -1,0 +1,243 @@
+<script>
+/**
+ * CSVダイアログ用JavaScript
+ * ボタン押下ごとに処理を分離
+ */
+
+// =====================
+// 初期化処理
+// =====================
+window.onload = function() {
+    initializeDialog();
+};
+
+function initializeDialog() {
+    console.log("CSV Dialog initialized");
+    
+    const elements = getDialogElements();
+    if (!validateElements(elements)) {
+        return;
+    }
+    
+    setupInitialState(elements);
+    setupEventHandlers(elements);
+}
+
+function getDialogElements() {
+    return {
+        fileInput: document.querySelector("input[type=\"file\"]"),
+        fileStatus: document.querySelector(".container-select p"),
+        uploadButton: document.querySelector(".button"),
+        cancelButton: document.querySelector(".cancel-button"),
+        uploadForm: document.getElementById("upload-button")
+    };
+}
+
+function validateElements(elements) {
+    const required = ["fileInput", "fileStatus", "uploadButton", "uploadForm"];
+    const missing = required.filter(key => !elements[key]);
+    
+    if (missing.length > 0) {
+        console.error("Required elements not found:", missing);
+        return false;
+    }
+    
+    console.log("All dialog elements found");
+    return true;
+}
+
+function setupInitialState(elements) {
+    elements.uploadButton.disabled = true;
+}
+
+function setupEventHandlers(elements) {
+    // ファイル選択イベント
+    elements.fileInput.addEventListener("change", function(e) {
+        handleFileSelection(e, elements);
+    });
+    
+    // フォーム送信イベント
+    elements.uploadForm.addEventListener("submit", function(e) {
+        handleFormSubmission(e, elements);
+    });
+    
+    // キャンセルボタンイベント
+    if (elements.cancelButton) {
+        elements.cancelButton.addEventListener("click", handleCancelButton);
+    }
+}
+
+// =====================
+// ファイル選択処理
+// =====================
+function handleFileSelection(event, elements) {
+    console.log("File selection event triggered");
+    
+    const file = event.target.files[0];
+    if (!file) {
+        updateFileStatus(elements.fileStatus, "選択されていません", "default");
+        elements.uploadButton.disabled = true;
+        return;
+    }
+    
+    console.log("File selected:", file.name, file.type);
+    
+    if (isValidCSVFile(file)) {
+        showFileSelected(elements, file);
+    } else {
+        showInvalidFile(elements);
+    }
+}
+
+function isValidCSVFile(file) {
+    return file.type === "text/csv" || file.name.endsWith(".csv");
+}
+
+function showFileSelected(elements, file) {
+    const fileSizeKB = (file.size / 1024).toFixed(1);
+    updateFileStatus(
+        elements.fileStatus, 
+        `選択済み: ${file.name} (${fileSizeKB} KB)`, 
+        "success"
+    );
+    elements.uploadButton.disabled = false;
+    console.log("Upload button enabled");
+}
+
+function showInvalidFile(elements) {
+    updateFileStatus(elements.fileStatus, "CSVファイルを選択してください", "error");
+    elements.uploadButton.disabled = true;
+    console.log("Invalid file type");
+}
+
+function updateFileStatus(statusElement, message, type) {
+    statusElement.textContent = message;
+    
+    const styles = {
+        success: { color: "#155724", backgroundColor: "#d4edda" },
+        error: { color: "#721c24", backgroundColor: "#f8d7da" },
+        default: { color: "#666", backgroundColor: "#f9f9f9" }
+    };
+    
+    const style = styles[type] || styles.default;
+    statusElement.style.color = style.color;
+    statusElement.style.backgroundColor = style.backgroundColor;
+}
+
+// =====================
+// フォーム送信処理
+// =====================
+function handleFormSubmission(event, elements) {
+    console.log("Form submission triggered");
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const file = elements.fileInput.files[0];
+    
+    if (!validateFileForUpload(file)) {
+        return;
+    }
+    
+    processFileUpload(file);
+}
+
+function validateFileForUpload(file) {
+    if (!file) {
+        showStatus("ファイルが選択されていません。", "error");
+        return false;
+    }
+    
+    if (!isValidCSVFile(file)) {
+        showStatus("CSVファイルを選択してください。", "error");
+        return false;
+    }
+    
+    return true;
+}
+
+function processFileUpload(file) {
+    console.log("Starting file upload process...");
+    showStatus("CSVファイルを読み込み中...", "info");
+    
+    const reader = new FileReader();
+    reader.onload = handleFileReadComplete;
+    reader.onerror = handleFileReadError;
+    reader.readAsText(file, "UTF-8");
+}
+
+function handleFileReadComplete(event) {
+    console.log("File read complete, calling server...");
+    const csvContent = event.target.result;
+    
+    google.script.run
+        .withSuccessHandler(handleUploadSuccess)
+        .withFailureHandler(handleUploadError)
+        .processCsvContent(csvContent);
+}
+
+function handleFileReadError(event) {
+    console.error("File read error:", event);
+    showStatus("ファイル読み込みエラーが発生しました。", "error");
+}
+
+// =====================
+// キャンセルボタン処理
+// =====================
+function handleCancelButton(event) {
+    console.log("Cancel button clicked");
+    event.preventDefault();
+    closeDialog();
+}
+
+// =====================
+// サーバー応答処理
+// =====================
+function handleUploadSuccess(result) {
+    console.log("Upload success:", result);
+    showStatus("CSVファイルの読み込みが完了しました。", "success");
+    setTimeout(() => {
+        closeDialog();
+    }, 2000);
+}
+
+function handleUploadError(error) {
+    console.error("Upload error:", error);
+    showStatus("エラー: " + error.message, "error");
+}
+
+// =====================
+// ユーティリティ関数
+// =====================
+function showStatus(message, type) {
+    console.log("Showing status:", message, type);
+    let statusDiv = document.querySelector(".status");
+    
+    if (!statusDiv) {
+        statusDiv = createStatusElement();
+    }
+    
+    updateStatusElement(statusDiv, message, type);
+}
+
+function createStatusElement() {
+    const statusDiv = document.createElement("div");
+    statusDiv.className = "status";
+    document.querySelector(".container").appendChild(statusDiv);
+    return statusDiv;
+}
+
+function updateStatusElement(statusDiv, message, type) {
+    statusDiv.textContent = message;
+    statusDiv.className = "status " + type;
+    statusDiv.style.display = "block";
+}
+
+function closeDialog() {
+    console.log("Closing dialog");
+    google.script.host.close();
+}
+
+// グローバル関数として公開
+window.closeDialog = closeDialog;
+window.showStatus = showStatus;
+</script>
