@@ -25,6 +25,8 @@
             </form>
         </div>
     </div>
-    <?!= HtmlService.createHtmlOutputFromFile('csv-dialog-js').getContent(); ?>
+    <script>
+        <?!= HtmlService.createHtmlOutputFromFile('csvDialogHandler').getContent(); ?>
+    </script>
 </body>
 </html>

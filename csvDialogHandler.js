@@ -1,4 +1,3 @@
-<script>
 /**
  * CSVダイアログ用JavaScript
  * ボタン押下ごとに処理を分離
@@ -7,10 +6,6 @@
 // =====================
 // 初期化処理
 // =====================
-window.onload = function() {
-    initializeDialog();
-};
-
 function initializeDialog() {
     console.log("CSV Dialog initialized");
     
@@ -237,7 +232,7 @@ function closeDialog() {
     google.script.host.close();
 }
 
-// グローバル関数として公開
-window.closeDialog = closeDialog;
-window.showStatus = showStatus;
-</script>
+// ページ読み込み時の初期化
+window.onload = function() {
+    initializeDialog();
+};
