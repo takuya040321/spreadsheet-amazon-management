@@ -2,10 +2,23 @@
 <html>
 <head>
     <base target="_top">
+    <style>
+        input[type="file"]::file-selector-button {
+            margin-right: 10px;
+        }
+        input[type="file"] {
+            color: transparent;
+        }
+        input[type="file"]::-webkit-file-upload-button {
+            color: initial;
+        }
+    </style>
     <script>
         function handleCsvUpload() {
             const fileInput = document.querySelector("input[type=\"file\"]");
             const file = fileInput.files[0];
+            const uploadButton = document.querySelector("button[onclick='handleCsvUpload()']");
+            const statusText = document.querySelector("#select-file p");
             
             if (!file) {
                 alert("ファイルが選択されていません。");
@@ -16,6 +29,10 @@
                 alert("CSVファイルを選択してください。");
                 return;
             }
+            
+            uploadButton.disabled = true;
+            uploadButton.textContent = "処理中...";
+            statusText.textContent = "CSV処理中です...";
             
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -28,6 +45,9 @@
                     })
                     .withFailureHandler(function(error) {
                         alert("エラー: " + error.message);
+                        uploadButton.disabled = false;
+                        uploadButton.textContent = "読み込み実行";
+                        statusText.textContent = file.name;
                     })
                     .processCsvContent(csvContent);
             };
@@ -38,6 +58,19 @@
         function closeDialog() {
             google.script.host.close();
         }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const fileInput = document.querySelector("input[type=\"file\"]");
+            const statusText = document.querySelector("#select-file p");
+            
+            fileInput.addEventListener("change", function() {
+                if (this.files.length > 0) {
+                    statusText.textContent = this.files[0].name;
+                } else {
+                    statusText.textContent = "選択されていません";
+                }
+            });
+        });
     </script>
 </head>
 <body>
