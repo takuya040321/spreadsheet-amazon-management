@@ -143,7 +143,7 @@ function writeToAmazonSalesSheet(csvData) {
   }
 
   const lastRow = sheet.getLastRow();
-  const startCol = 7;
+  const startCol = 6;
   console.log("Writing to sheet starting at row", lastRow + 1, "column", startCol);
   
   for (let i = 0; i < newData.length; i++) {
@@ -165,7 +165,7 @@ function getExistingData(sheet) {
     return [];
   }
 
-  const range = sheet.getRange(1, 7, lastRow, sheet.getLastColumn() - 6);
+  const range = sheet.getRange(1, 6, lastRow, sheet.getLastColumn() - 5);
   return range.getValues().filter(row => row.some(cell => cell !== ""));
 }
 
