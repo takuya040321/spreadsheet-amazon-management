@@ -2,6 +2,9 @@
 <html>
 <head>
     <base target="_top">
+    <script>
+        <?!= HtmlService.createHtmlOutputFromFile('csvUploadHandler').getContent(); ?>
+    </script>
 </head>
 <body>
     <h1>CSVファイル読み込み</h1>
@@ -12,7 +15,7 @@
         </form>
     </div>
     <div>
-        <form id='upload-button'>
+        <form id='upload-button' onsubmit="event.preventDefault(); handleCsvUpload();">
             <button type="submit">読み込み実行</button>
             <button type="button" onclick="closeDialog()">キャンセル</button>
         </form>
