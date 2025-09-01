@@ -144,16 +144,15 @@ function writeToAmazonSalesSheet(csvData) {
 
   const lastRow = sheet.getLastRow();
   const startCol = 6;
-  console.log("Writing to sheet starting at row", lastRow + 1, "column", startCol);
+  const startRow = lastRow + 1;
+  const numRows = newData.length;
+  const numCols = newData[0].length;
   
-  for (let i = 0; i < newData.length; i++) {
-    const row = newData[i];
-    const targetRow = lastRow + i + 1;
-    
-    for (let j = 0; j < row.length; j++) {
-      sheet.getRange(targetRow, startCol + j).setValue(row[j]);
-    }
-  }
+  console.log("Writing to sheet starting at row", startRow, "column", startCol);
+  console.log("Range:", numRows, "x", numCols);
+  
+  const range = sheet.getRange(startRow, startCol, numRows, numCols);
+  range.setValues(newData);
 
   console.log(`${newData.length}行のデータを「Amazon売上」シートに追加しました。`);
   return `${newData.length}行のデータを追加しました。`;
