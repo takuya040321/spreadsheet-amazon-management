@@ -51,6 +51,7 @@ function processData() {
         row: row,
         aValue: result.aValue,
         bValue: result.bValue,
+        cValue: result.cValue,
         dValue: result.dValue
       });
       processedCount++;
@@ -168,8 +169,9 @@ function processSKUSearch(productData, row, sku, today) {
   const foundRow = searchSKUInArray(productData, sku);
   if (foundRow) {
     return {
-      aValue: foundRow,
-      bValue: "販売",
+      aValue: "", // 使用しない
+      bValue: foundRow,
+      cValue: `=HYPERLINK("#gid=0&range=A${foundRow}", "${foundRow}行目")`, // 商品管理シートへのリンク
       dValue: today
     };
   } else {
@@ -247,9 +249,10 @@ function getProductSheetData(productSheet) {
 }
 
 function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
-  // A列、B列、D列の更新を一括で実行
+  // A列、B列、C列、D列の更新を一括で実行
   const aUpdates = [];
   const bUpdates = [];
+  const cUpdates = [];
   const dUpdates = [];
   
   updates.forEach(update => {
@@ -258,6 +261,9 @@ function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
     }
     if (update.bValue !== "") {
       bUpdates.push([update.row, 2, update.bValue]);
+    }
+    if (update.cValue !== undefined && update.cValue !== "") {
+      cUpdates.push([update.row, 3, update.cValue]);
     }
     if (update.dValue !== "") {
       dUpdates.push([update.row, 4, update.dValue]);
@@ -273,6 +279,12 @@ function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
   
   if (bUpdates.length > 0) {
     bUpdates.forEach(([row, col, value]) => {
+      amazonSalesSheet.getRange(row, col).setValue(value);
+    });
+  }
+  
+  if (cUpdates.length > 0) {
+    cUpdates.forEach(([row, col, value]) => {
       amazonSalesSheet.getRange(row, col).setValue(value);
     });
   }
