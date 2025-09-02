@@ -286,7 +286,7 @@ function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
 
 function searchSKUInArray(productData, sku) {
   for (let i = 0; i < productData.length; i++) {
-    const row = i + 2; // 実際の行番号（2行目から開始）
+    const row = i + 3; // 実際の行番号（3行目から開始）
     const skuColumnIndex = 24; // Y列（0始まりなので24）
     const sheetSku = productData[i][skuColumnIndex];
     const status = getProductStatusFromArray(productData[i]);
