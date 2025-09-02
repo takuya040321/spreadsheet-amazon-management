@@ -287,7 +287,7 @@ function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
 function searchSKUInArray(productData, sku) {
   for (let i = 0; i < productData.length; i++) {
     const row = i + 2; // 実際の行番号（2行目から開始）
-    const skuColumnIndex = getSKUColumnIndex(); // SKU列のインデックスを取得
+    const skuColumnIndex = 24; // Y列（0始まりなので24）
     const sheetSku = productData[i][skuColumnIndex];
     const status = getProductStatusFromArray(productData[i]);
     
@@ -331,11 +331,6 @@ function getProductStatusFromArray(rowData) {
   }
 }
 
-function getSKUColumnIndex() {
-  // SKU列のインデックスを返す（商品管理シートの構造に依存）
-  // 実際のシート構造に合わせて調整が必要
-  return 5; // 仮の値、実際の列位置に合わせて変更
-}
 
 function getOrderNumberColumnIndex() {
   // 注文番号列のインデックスを返す（商品管理シートの構造に依存）
