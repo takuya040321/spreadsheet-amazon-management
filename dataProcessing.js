@@ -239,7 +239,7 @@ function getProductSheetData(productSheet) {
     return [];
   }
   
-  return productSheet.getRange(2, 1, lastRow - 1, productSheet.getLastColumn()).getValues();
+  return productSheet.getRange(3, 1, lastRow - 2, productSheet.getLastColumn()).getValues();
 }
 
 function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
