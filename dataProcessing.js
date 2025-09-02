@@ -37,19 +37,23 @@ function processData() {
       const row = i + 3; // 実際の行番号（3行目から開始）
       const aValue = amazonData[i][0]; // A列の値
       
-      // A列が空白の行を処理対象とする
-      if (aValue === "" || aValue === null) {
-        const result = processDataRow(amazonData[i], productData, row);
-        if (result) {
-          updates.push({
-            row: row,
-            aValue: result.aValue,
-            bValue: result.bValue,
-            dValue: result.dValue
-          });
-          processedCount++;
-        }
+      // A列が空白でない行はスキップ
+      if (aValue !== "" && aValue !== null) {
+        continue;
       }
+      
+      const result = processDataRow(amazonData[i], productData, row);
+      if (!result) {
+        continue;
+      }
+      
+      updates.push({
+        row: row,
+        aValue: result.aValue,
+        bValue: result.bValue,
+        dValue: result.dValue
+      });
+      processedCount++;
     }
     
     // 結果を一括書き込み
