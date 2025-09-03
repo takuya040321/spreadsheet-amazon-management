@@ -84,7 +84,7 @@ function processDataRow(rowData, productData, row) {
     
     // トランザクション種類別処理
     switch (transactionType) {
-      case "FBA在庫関連の手数料":
+      case "FBA 在庫関連の手数料":
       case "振込み":
       case "注文外料金":
         // A列を転記対象外に設定
