@@ -50,10 +50,7 @@ function processData() {
         continue;
       }
       
-      // 見つかった行を使用済みに追加
-      if (result.bValue) {
-        usedProductRows.add(result.bValue);
-      }
+      // 使用済み行の管理は各処理関数内で実行
       
       updates.push({
         row: row,
@@ -117,7 +114,8 @@ function processDataRow(rowData, productData, row, usedProductRows) {
         return processRefund(productData, row, orderNumber, today);
         
       case "注文":
-        return processSKUSearch(productData, row, sku, today, usedProductRows);
+        const quantity = parseInt(rowData[11]) || 1; // L列の数量（デフォルト1）
+        return processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity);
         
       default:
         console.log(`Unknown transaction type: ${transactionType}`);
@@ -164,6 +162,41 @@ function processRefund(productData, row, orderNumber, today) {
     };
   } else {
     console.log(`Row ${row}: Order number ${orderNumber} not found, skipping`);
+    return null;
+  }
+}
+
+function processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity) {
+  if (!sku) {
+    console.log(`Row ${row}: No SKU found, skipping`);
+    return null;
+  }
+  
+  const foundRows = [];
+  const foundLinks = [];
+  
+  // 数量分だけ繰り返し検索
+  for (let i = 0; i < quantity; i++) {
+    const foundRow = searchSKUInArray(productData, sku, usedProductRows);
+    if (foundRow) {
+      foundRows.push(foundRow);
+      foundLinks.push(`=HYPERLINK("#gid=0&range=A${foundRow}", "リンク${i + 1}")`);
+      usedProductRows.add(foundRow); // 即座に使用済みに追加
+    } else {
+      console.log(`Row ${row}: SKU ${sku} not found for quantity ${i + 1}, stopping search`);
+      break;
+    }
+  }
+  
+  if (foundRows.length > 0) {
+    return {
+      aValue: "", // 使用しない
+      bValue: foundRows.join(","), // カンマ区切りで複数行番号
+      cValue: foundLinks.join(" "), // スペース区切りで複数リンク
+      dValue: today
+    };
+  } else {
+    console.log(`Row ${row}: No matching SKU ${sku} found`);
     return null;
   }
 }
