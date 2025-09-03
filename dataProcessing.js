@@ -32,6 +32,9 @@ function processData() {
     const updates = [];
     let processedCount = 0;
     
+    // 使用済みの商品管理シート行番号を管理
+    const usedProductRows = new Set();
+    
     // 各行を処理
     for (let i = 0; i < amazonData.length; i++) {
       const row = i + 3; // 実際の行番号（3行目から開始）
@@ -42,9 +45,14 @@ function processData() {
         continue;
       }
       
-      const result = processDataRow(amazonData[i], productData, row);
+      const result = processDataRow(amazonData[i], productData, row, usedProductRows);
       if (!result) {
         continue;
+      }
+      
+      // 見つかった行を使用済みに追加
+      if (result.bValue) {
+        usedProductRows.add(result.bValue);
       }
       
       updates.push({
@@ -71,7 +79,7 @@ function processData() {
   }
 }
 
-function processDataRow(rowData, productData, row) {
+function processDataRow(rowData, productData, row, usedProductRows) {
   try {
     const transactionType = rowData[7]; // H列（0ベースなので7）
     const productName = rowData[10]; // K列
@@ -109,7 +117,7 @@ function processDataRow(rowData, productData, row) {
         return processRefund(productData, row, orderNumber, today);
         
       case "注文":
-        return processSKUSearch(productData, row, sku, today);
+        return processSKUSearch(productData, row, sku, today, usedProductRows);
         
       default:
         console.log(`Unknown transaction type: ${transactionType}`);
@@ -160,13 +168,13 @@ function processRefund(productData, row, orderNumber, today) {
   }
 }
 
-function processSKUSearch(productData, row, sku, today) {
+function processSKUSearch(productData, row, sku, today, usedProductRows) {
   if (!sku) {
     console.log(`Row ${row}: No SKU found, skipping`);
     return null;
   }
   
-  const foundRow = searchSKUInArray(productData, sku);
+  const foundRow = searchSKUInArray(productData, sku, usedProductRows);
   if (foundRow) {
     return {
       aValue: "", // 使用しない
@@ -296,12 +304,17 @@ function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
   }
 }
 
-function searchSKUInArray(productData, sku) {
+function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const skuColumnIndex = 24; // Y列（0始まりなので24）
     const sheetSku = productData[i][skuColumnIndex];
     const status = getProductStatusFromArray(productData[i]);
+    
+    // 使用済みの行はスキップ
+    if (usedProductRows.has(row)) {
+      continue;
+    }
     
     // 「4.販売/処分済」以外のステータスを検索対象とする
     if (String(sheetSku).trim() === String(sku).trim() && status !== "4.販売/処分済") {
