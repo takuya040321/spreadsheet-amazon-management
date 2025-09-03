@@ -171,7 +171,7 @@ function processSKUSearch(productData, row, sku, today) {
     return {
       aValue: "", // 使用しない
       bValue: foundRow,
-      cValue: `=HYPERLINK("#gid=0&range=A${foundRow}", "${foundRow}行目")`, // 商品管理シートへのリンク
+      cValue: `=HYPERLINK("#gid=0&range=A${foundRow}", "リンク")`, // 商品管理シートへのリンク
       dValue: today
     };
   } else {
