@@ -173,14 +173,12 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
   }
   
   const foundRows = [];
-  const foundLinks = [];
   
   // 数量分だけ繰り返し検索
   for (let i = 0; i < quantity; i++) {
     const foundRow = searchSKUInArray(productData, sku, usedProductRows);
     if (foundRow) {
       foundRows.push(foundRow);
-      foundLinks.push(`=HYPERLINK("#gid=0&range=A${foundRow}", "リンク${i + 1}")`);
       usedProductRows.add(foundRow); // 即座に使用済みに追加
     } else {
       console.log(`Row ${row}: SKU ${sku} not found for quantity ${i + 1}, stopping search`);
@@ -189,10 +187,11 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
   }
   
   if (foundRows.length > 0) {
+    const firstRow = foundRows[0]; // 最初の行のみリンク対象
     return {
       aValue: "", // 使用しない
       bValue: foundRows.join(","), // カンマ区切りで複数行番号
-      cValue: foundLinks.join(" "), // スペース区切りで複数リンク
+      cValue: `=HYPERLINK("#gid=0&range=A${firstRow}", "リンク")`, // 最初の行へのリンク
       dValue: today
     };
   } else {
