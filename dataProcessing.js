@@ -37,7 +37,7 @@ function processData() {
     
     // 空白行が見つからない場合は処理終了
     if (startIndex === -1) {
-      console.log("No empty rows found in column A");
+      console.log("A列に空白行が見つかりませんでした");
       return "処理対象の空白行がありませんでした。";
     }
     
@@ -99,7 +99,7 @@ function processDataRow(rowData, productData, row, usedProductRows, amazonData) 
     const orderNumber = rowData[11]; // L列（0ベースなので11）
     const sku = rowData[9]; // J列（0ベースなので9）
     
-    console.log(`Processing row ${row}: ${transactionType}`);
+    console.log(`行 ${row} を処理中: ${transactionType}`);
     
     const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
     
@@ -131,7 +131,7 @@ function processDataRow(rowData, productData, row, usedProductRows, amazonData) 
         return processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity);
         
       default:
-        console.log(`Unknown transaction type: ${transactionType}`);
+        console.log(`不明なトランザクション種類: ${transactionType}`);
         return {
           aValue: "",
           bValue: "",
@@ -163,7 +163,7 @@ function processAdjustment(productData, row, productName, sku, today) {
 
 function processRefund(productData, row, orderNumber, today) {
   if (!orderNumber) {
-    console.log(`Row ${row}: No order number found, skipping`);
+    console.log(`行 ${row}: 注文番号が見つかりませんでした、スキップします`);
     return null;
   }
   
@@ -177,14 +177,14 @@ function processRefund(productData, row, orderNumber, today) {
       dValue: today
     };
   } else {
-    console.log(`Row ${row}: Order number ${orderNumber} not found, skipping`);
+    console.log(`行 ${row}: 注文番号 ${orderNumber} が見つかりませんでした、スキップします`);
     return null;
   }
 }
 
 function processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity) {
   if (!sku) {
-    console.log(`Row ${row}: No SKU found, skipping`);
+    console.log(`行 ${row}: SKUが見つかりませんでした、スキップします`);
     return null;
   }
   
@@ -197,7 +197,7 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
       foundRows.push(foundRow);
       usedProductRows.add(foundRow); // 即座に使用済みに追加
     } else {
-      console.log(`Row ${row}: SKU ${sku} not found for quantity ${i + 1}, stopping search`);
+      console.log(`行 ${row}: SKU ${sku} が数量 ${i + 1} で見つかりませんでした、検索を停止します`);
       break;
     }
   }
@@ -211,14 +211,14 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
       dValue: today
     };
   } else {
-    console.log(`Row ${row}: No matching SKU ${sku} found`);
+    console.log(`行 ${row}: 一致するSKU ${sku} が見つかりませんでした`);
     return null;
   }
 }
 
 function processDeliveryService(row, orderNumber, today, amazonData) {
   if (!orderNumber) {
-    console.log(`Row ${row}: No order number found in I column, skipping`);
+    console.log(`行 ${row}: I列に注文番号が見つかりませんでした、スキップします`);
     return null;
   }
   
@@ -232,14 +232,14 @@ function processDeliveryService(row, orderNumber, today, amazonData) {
       dValue: today
     };
   } else {
-    console.log(`Row ${row}: Order number ${orderNumber} not found in I column, skipping`);
+    console.log(`行 ${row}: 注文番号 ${orderNumber} がI列で見つかりませんでした、スキップします`);
     return null;
   }
 }
 
 function processSKUSearch(productData, row, sku, today, usedProductRows) {
   if (!sku) {
-    console.log(`Row ${row}: No SKU found, skipping`);
+    console.log(`行 ${row}: SKUが見つかりませんでした、スキップします`);
     return null;
   }
   
@@ -252,7 +252,7 @@ function processSKUSearch(productData, row, sku, today, usedProductRows) {
       dValue: today
     };
   } else {
-    console.log(`Row ${row}: SKU ${sku} not found, skipping`);
+    console.log(`行 ${row}: SKU ${sku} が見つかりませんでした、スキップします`);
     return null;
   }
 }
