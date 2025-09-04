@@ -45,7 +45,7 @@ function processData() {
         continue;
       }
       
-      const result = processDataRow(amazonData[i], productData, row, usedProductRows);
+      const result = processDataRow(amazonData[i], productData, row, usedProductRows, amazonData);
       if (!result) {
         continue;
       }
@@ -76,7 +76,7 @@ function processData() {
   }
 }
 
-function processDataRow(rowData, productData, row, usedProductRows) {
+function processDataRow(rowData, productData, row, usedProductRows, amazonData) {
   try {
     const transactionType = rowData[7]; // H列（0ベースなので7）
     const productName = rowData[10]; // K列
@@ -100,12 +100,8 @@ function processDataRow(rowData, productData, row, usedProductRows) {
         };
         
       case "配送サービス":
-        // 処理なし
-        return {
-          aValue: "",
-          bValue: "",
-          dValue: today
-        };
+        const orderNumberFromI = rowData[8]; // I列の注文番号（0ベースなので8）
+        return processDeliveryService(row, orderNumberFromI, today, amazonData);
         
       case "調整":
         return processAdjustment(productData, row, productName, sku, today);
@@ -196,6 +192,26 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
     };
   } else {
     console.log(`Row ${row}: No matching SKU ${sku} found`);
+    return null;
+  }
+}
+
+function processDeliveryService(row, orderNumber, today, amazonData) {
+  if (!orderNumber) {
+    console.log(`Row ${row}: No order number found in I column, skipping`);
+    return null;
+  }
+  
+  // Amazon売上シート内でI列の注文番号を検索
+  const foundRow = searchOrderNumberInAmazonData(amazonData, orderNumber);
+  if (foundRow) {
+    return {
+      aValue: "", // 使用しない
+      bValue: `=B${foundRow}`, // 見つかった行のB列を参照
+      dValue: today
+    };
+  } else {
+    console.log(`Row ${row}: Order number ${orderNumber} not found in I column, skipping`);
     return null;
   }
 }
@@ -350,6 +366,19 @@ function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
     
     // 「4.販売/処分済」以外のステータスを検索対象とする
     if (String(sheetSku).trim() === String(sku).trim() && status !== "4.販売/処分済") {
+      return row;
+    }
+  }
+  
+  return null;
+}
+
+function searchOrderNumberInAmazonData(amazonData, orderNumber) {
+  for (let i = 0; i < amazonData.length; i++) {
+    const row = i + 3; // 実際の行番号（3行目から開始）
+    const sheetOrderNumber = amazonData[i][8]; // I列（0ベースなので8）
+    
+    if (String(sheetOrderNumber).trim() === String(orderNumber).trim()) {
       return row;
     }
   }
