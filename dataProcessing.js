@@ -197,7 +197,7 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
     return {
       aValue: "", // 使用しない
       bValue: foundRows.join(","), // カンマ区切りで複数行番号
-      cValue: `=HYPERLINK("#gid=0&range=A${firstRow}", "リンク")`, // 最初の行へのリンク
+      cValue: `=HYPERLINK("'商品管理'!A${firstRow}", "リンク")`, // 商品管理シートの該当行へのリンク
       dValue: today
     };
   } else {
@@ -237,7 +237,7 @@ function processSKUSearch(productData, row, sku, today, usedProductRows) {
     return {
       aValue: "", // 使用しない
       bValue: foundRow,
-      cValue: `=HYPERLINK("#gid=0&range=A${foundRow}", "リンク")`, // 商品管理シートへのリンク
+      cValue: `=HYPERLINK("'商品管理'!A${foundRow}", "リンク")`, // 商品管理シートへのリンク
       dValue: today
     };
   } else {
