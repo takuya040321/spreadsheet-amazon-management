@@ -28,10 +28,6 @@ function processData() {
     // 商品管理シートの全データを一括取得
     const productData = getProductSheetData(productSheet);
     
-    // 結果を格納する配列
-    const updates = [];
-    let processedCount = 0;
-    
     // 使用済みの商品管理シート行番号を管理
     const usedProductRows = new Set();
     
@@ -46,31 +42,9 @@ function processData() {
     }
     
     // 空白行から処理開始
-    for (let i = startIndex; i < amazonData.length; i++) {
-      const row = i + 3; // 実際の行番号（3行目から開始）
-      const aValue = amazonData[i][0]; // A列の値
-      
-      // A列が空白でない行はスキップ
-      if (aValue !== "" && aValue !== null) {
-        continue;
-      }
-      
-      const result = processDataRow(amazonData[i], productData, row, usedProductRows, amazonData);
-      if (!result) {
-        continue;
-      }
-      
-      // 使用済み行の管理は各処理関数内で実行
-      
-      updates.push({
-        row: row,
-        aValue: result.aValue,
-        bValue: result.bValue,
-        cValue: result.cValue,
-        dValue: result.dValue
-      });
-      processedCount++;
-    }
+    const result = processAmazonRows(amazonData, productData, startIndex, usedProductRows);
+    const updates = result.updates;
+    const processedCount = result.processedCount;
     
     // 結果を一括書き込み
     if (updates.length > 0) {
@@ -84,6 +58,38 @@ function processData() {
     console.error("processData error:", error);
     throw error;
   }
+}
+
+function processAmazonRows(amazonData, productData, startIndex, usedProductRows) {
+  const updates = [];
+  let processedCount = 0;
+  
+  for (let i = startIndex; i < amazonData.length; i++) {
+    const row = i + 3; // 実際の行番号（3行目から開始）
+    const aValue = amazonData[i][0]; // A列の値
+    
+    // A列が空白でない行はスキップ
+    if (aValue !== "" && aValue !== null) {
+      continue;
+    }
+    
+    const result = processDataRow(amazonData[i], productData, row, usedProductRows, amazonData);
+    if (!result) {
+      continue;
+    }
+    
+    // 使用済み行の管理は各処理関数内で実行
+    updates.push({
+      row: row,
+      aValue: result.aValue,
+      bValue: result.bValue,
+      cValue: result.cValue || "", // cValueが存在しない場合は空文字
+      dValue: result.dValue
+    });
+    processedCount++;
+  }
+  
+  return { updates, processedCount };
 }
 
 function processDataRow(rowData, productData, row, usedProductRows, amazonData) {
@@ -106,6 +112,7 @@ function processDataRow(rowData, productData, row, usedProductRows, amazonData) 
         return {
           aValue: "転記対象外",
           bValue: "",
+          cValue: "",
           dValue: today
         };
         
@@ -128,6 +135,7 @@ function processDataRow(rowData, productData, row, usedProductRows, amazonData) 
         return {
           aValue: "",
           bValue: "",
+          cValue: "",
           dValue: today
         };
     }
@@ -144,6 +152,7 @@ function processAdjustment(productData, row, productName, sku, today) {
     return {
       aValue: "転記対象外",
       bValue: "",
+      cValue: "",
       dValue: today
     };
   } else {
@@ -164,6 +173,7 @@ function processRefund(productData, row, orderNumber, today) {
     return {
       aValue: foundRow,
       bValue: "返金",
+      cValue: "",
       dValue: today
     };
   } else {
@@ -218,6 +228,7 @@ function processDeliveryService(row, orderNumber, today, amazonData) {
     return {
       aValue: "", // 使用しない
       bValue: `=B${foundRow}`, // 見つかった行のB列を参照
+      cValue: "",
       dValue: today
     };
   } else {
