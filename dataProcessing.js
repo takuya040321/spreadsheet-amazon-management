@@ -35,8 +35,18 @@ function processData() {
     // 使用済みの商品管理シート行番号を管理
     const usedProductRows = new Set();
     
-    // 各行を処理
-    for (let i = 0; i < amazonData.length; i++) {
+    // A列の空白の最初の行を効率的に取得
+    const aColumn = amazonData.map(row => row[0]); // A列のデータのみ抽出
+    const startIndex = aColumn.findIndex(value => value === "" || value === null);
+    
+    // 空白行が見つからない場合は処理終了
+    if (startIndex === -1) {
+      console.log("No empty rows found in column A");
+      return "処理対象の空白行がありませんでした。";
+    }
+    
+    // 空白行から処理開始
+    for (let i = startIndex; i < amazonData.length; i++) {
       const row = i + 3; // 実際の行番号（3行目から開始）
       const aValue = amazonData[i][0]; // A列の値
       

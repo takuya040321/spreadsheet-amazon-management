@@ -20,8 +20,21 @@ function transferToProductSheet() {
     const lastRow = amazonSalesSheet.getLastRow();
     let transferredCount = 0;
     
-    // Amazon売上シートの各行を処理
-    for (let row = 3; row <= lastRow; row++) {
+    // A列の値がある最初の行を効率的に取得
+    const aColumnRange = amazonSalesSheet.getRange(3, 1, lastRow - 2, 1); // A3からA最終行まで
+    const aColumnValues = aColumnRange.getValues().flat(); // 1次元配列に変換
+    const startIndex = aColumnValues.findIndex(value => value && typeof value === "number" && value > 0);
+    
+    // 処理対象行が見つからない場合は処理終了
+    if (startIndex === -1) {
+      console.log("No rows with values found in column A");
+      return "転記対象の行がありませんでした。";
+    }
+    
+    const startRow = startIndex + 3; // 実際の行番号（3行目からの相対位置を加算）
+    
+    // 処理対象行から処理開始
+    for (let row = startRow; row <= lastRow; row++) {
       const targetRow = amazonSalesSheet.getRange(row, 1).getValue(); // A列の行番号
       const status = amazonSalesSheet.getRange(row, 2).getValue(); // B列のステータス
       const transactionType = amazonSalesSheet.getRange(row, 8).getValue(); // H列
