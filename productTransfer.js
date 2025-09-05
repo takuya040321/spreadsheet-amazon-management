@@ -103,10 +103,10 @@ function processTransferRows(amazonData, productSheet, startIndex) {
 function processSalesDataTransfer(rowData, sourceRow, targetRow) {
   try {
     // 売上データの取得
-    const saleDate = rowData[5]; // F列
-    const sPrice = rowData[18] || 0; // S列
-    const tPrice = rowData[19] || 0; // T列
-    const revenue = rowData[32] || 0; // AG列
+    const saleDate = rowData[5]; // F列（日付/時間）
+    const sPrice = rowData[18] || 0; // S列（商品売上）
+    const tPrice = rowData[19] || 0; // T列（商品の売上税）
+    const revenue = rowData[32] || 0; // AG列（合計（振込金額））
     
     // 日付をYYYY/MM/DD形式に変換
     let formattedDate = "";
