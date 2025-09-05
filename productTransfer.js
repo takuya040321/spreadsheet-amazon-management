@@ -33,31 +33,14 @@ function transferToProductSheet() {
       return "転記対象の空白行がありませんでした。";
     }
     
-    const startRow = startIndex + 3; // 実際の行番号（3行目からの相対位置を加算）
+    // 空白行から処理開始
+    const result = processTransferRows(amazonData, productSheet, startIndex);
+    const updates = result.updates;
+    transferredCount = result.transferredCount;
     
-    // 処理対象行から処理開始
-    for (let row = startRow; row <= lastRow; row++) {
-      const status = amazonSalesSheet.getRange(row, 1).getValue(); // A列のステータス
-      const targetRow = amazonSalesSheet.getRange(row, 2).getValue(); // B列の行番号
-      const transactionType = amazonSalesSheet.getRange(row, 8).getValue(); // H列
-      
-      // 転記対象の判定（B列に行番号があり、A列が転記対象外でない）
-      if (targetRow && typeof targetRow === "number" && targetRow > 0 && status !== "転記対象外") {
-        
-        if (transactionType === "配送サービス") {
-          // 配送サービスの特別処理
-          const result = processShippingService(amazonSalesSheet, productSheet, row, targetRow);
-          if (result) transferredCount++;
-        } else {
-          // 通常の売上データ転記処理
-          const result = transferSalesData(amazonSalesSheet, productSheet, row, targetRow);
-          if (result) transferredCount++;
-        }
-        
-        // E列に処理実行日を記録
-        const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
-        amazonSalesSheet.getRange(row, 5).setValue(today);
-      }
+    // 結果を一括書き込み
+    if (updates.length > 0) {
+      batchUpdateTransferSheet(amazonSalesSheet, productSheet, updates);
     }
     
     console.log(`${transferredCount}行のデータを商品管理シートに転記しました。`);
@@ -66,6 +49,154 @@ function transferToProductSheet() {
   } catch (error) {
     console.error("transferToProductSheet error:", error);
     throw error;
+  }
+}
+
+function processTransferRows(amazonData, productSheet, startIndex) {
+  const updates = [];
+  let transferredCount = 0;
+  
+  for (let i = startIndex; i < amazonData.length; i++) {
+    const row = i + 3; // 実際の行番号（3行目から開始）
+    const status = amazonData[i][0]; // A列のステータス
+    const targetRow = amazonData[i][1]; // B列の行番号
+    const transactionType = amazonData[i][7]; // H列
+    
+    // 転記対象の判定（B列に行番号があり、A列が転記対象外でない）
+    if (targetRow && typeof targetRow === "number" && targetRow > 0 && status !== "転記対象外") {
+      
+      if (transactionType === "配送サービス") {
+        // 配送サービスの特別処理
+        const result = processShippingServiceData(amazonData[i], row, targetRow);
+        if (result) {
+          updates.push(result);
+          transferredCount++;
+        }
+      } else {
+        // 通常の売上データ転記処理
+        const result = processSalesDataTransfer(amazonData[i], row, targetRow);
+        if (result) {
+          updates.push(result);
+          transferredCount++;
+        }
+      }
+    }
+  }
+  
+  return { updates, transferredCount };
+}
+
+function processSalesDataTransfer(rowData, sourceRow, targetRow) {
+  try {
+    // 売上データの取得
+    const saleDate = rowData[5]; // F列
+    const sPrice = rowData[18] || 0; // S列
+    const tPrice = rowData[19] || 0; // T列
+    const revenue = rowData[32] || 0; // AG列
+    
+    // 日付をYYYY/MM/DD形式に変換
+    let formattedDate = "";
+    if (saleDate instanceof Date) {
+      formattedDate = Utilities.formatDate(saleDate, "Asia/Tokyo", "yyyy/MM/dd");
+    } else if (saleDate) {
+      formattedDate = String(saleDate);
+    }
+    
+    // 販売価格（S列＋T列）
+    const totalSalePrice = Number(sPrice) + Number(tPrice);
+    
+    console.log(`Transferred sales data for row ${sourceRow} to product row ${targetRow}`);
+    
+    return {
+      type: "sales",
+      sourceRow: sourceRow,
+      targetRow: targetRow,
+      formattedDate: formattedDate,
+      totalSalePrice: totalSalePrice,
+      revenue: revenue
+    };
+    
+  } catch (error) {
+    console.error(`Error processing sales data for row ${sourceRow}:`, error);
+    return null;
+  }
+}
+
+function processShippingServiceData(rowData, sourceRow, targetRow) {
+  try {
+    // 配送サービスデータの取得
+    const iData = rowData[8]; // I列
+    const agData = rowData[32]; // AG列
+    
+    // 転記データの作成
+    let transferData = "";
+    if (iData) transferData += String(iData);
+    if (agData) {
+      if (transferData) transferData += " / ";
+      transferData += String(agData);
+    }
+    
+    console.log(`Processed shipping service for row ${sourceRow} to product row ${targetRow}`);
+    
+    return {
+      type: "shipping",
+      sourceRow: sourceRow,
+      targetRow: targetRow,
+      transferData: transferData
+    };
+    
+  } catch (error) {
+    console.error(`Error processing shipping service for row ${sourceRow}:`, error);
+    return null;
+  }
+}
+
+function batchUpdateTransferSheet(amazonSalesSheet, productSheet, updates) {
+  const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+  
+  // Amazon売上シートのE列更新データを準備
+  const amazonUpdates = [];
+  
+  // 商品管理シートの更新データを準備
+  const productUpdates = [];
+  
+  updates.forEach(update => {
+    // Amazon売上シートのE列に処理実行日を記録
+    amazonUpdates.push([update.sourceRow, 5, today]);
+    
+    if (update.type === "sales") {
+      // 売上データの転記
+      if (update.formattedDate) {
+        productUpdates.push([update.targetRow, 28, update.formattedDate]); // AB列（売上日）
+      }
+      if (update.totalSalePrice !== 0) {
+        productUpdates.push([update.targetRow, 29, update.totalSalePrice]); // AC列（販売価格）
+      }
+      if (update.revenue !== 0) {
+        productUpdates.push([update.targetRow, 30, update.revenue]); // AD列（入金価格）
+      }
+      productUpdates.push([update.targetRow, 32, true]); // AF列（売却廃却）
+      
+    } else if (update.type === "shipping") {
+      // 配送サービスの転記
+      if (update.transferData) {
+        productUpdates.push([update.targetRow, 31, update.transferData]); // AE列
+      }
+    }
+  });
+  
+  // Amazon売上シートの一括更新
+  if (amazonUpdates.length > 0) {
+    amazonUpdates.forEach(([row, col, value]) => {
+      amazonSalesSheet.getRange(row, col).setValue(value);
+    });
+  }
+  
+  // 商品管理シートの一括更新
+  if (productUpdates.length > 0) {
+    productUpdates.forEach(([row, col, value]) => {
+      productSheet.getRange(row, col).setValue(value);
+    });
   }
 }
 
