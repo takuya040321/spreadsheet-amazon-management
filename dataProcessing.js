@@ -124,7 +124,8 @@ function processDataRow(rowData, productData, row, usedProductRows, amazonData) 
         return processAdjustment(productData, row, productName, sku, today);
         
       case "返金":
-        return processRefund(productData, row, orderNumber, today);
+        const refundOrderNumber = rowData[8]; // I列の注文番号（0ベースなので8）
+        return processRefund(row, refundOrderNumber, today, amazonData);
         
       case "注文":
         const quantity = parseInt(rowData[11]) || 1; // L列の数量（デフォルト1）
@@ -161,23 +162,23 @@ function processAdjustment(productData, row, productName, sku, today) {
   }
 }
 
-function processRefund(productData, row, orderNumber, today) {
+function processRefund(row, orderNumber, today, amazonData) {
   if (!orderNumber) {
-    console.log(`行 ${row}: 注文番号が見つかりませんでした、スキップします`);
+    console.log(`行 ${row}: I列に注文番号が見つかりませんでした、スキップします`);
     return null;
   }
   
-  // 注文番号検索・ステータス更新処理
-  const foundRow = searchOrderNumberInArray(productData, orderNumber);
+  // Amazon売上シート内でI列の注文番号を検索（自分自身を除く）
+  const foundRow = searchOrderNumberInAmazonData(amazonData, orderNumber, row);
   if (foundRow) {
     return {
-      aValue: foundRow,
-      bValue: "返金",
+      aValue: "", // 使用しない
+      bValue: `=B${foundRow}`, // 見つかった行のB列を参照
       cValue: "",
       dValue: today
     };
   } else {
-    console.log(`行 ${row}: 注文番号 ${orderNumber} が見つかりませんでした、スキップします`);
+    console.log(`行 ${row}: 注文番号 ${orderNumber} がI列で見つかりませんでした、スキップします`);
     return null;
   }
 }
