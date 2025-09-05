@@ -23,14 +23,14 @@ function transferToProductSheet() {
     // Amazon売上シートの全データを一括取得
     const amazonData = amazonSalesSheet.getRange(3, 1, lastRow - 2, amazonSalesSheet.getLastColumn()).getValues();
 
-    // A列の値がある最初の行を効率的に取得
+    // A列の空白の最初の行を効率的に取得
     const aColumn = amazonData.map(row => row[0]); // A列のデータのみ抽出
-    const startIndex = aColumn.findIndex(value => value && typeof value === "number" && value > 0);
+    const startIndex = aColumn.findIndex(value => value === "" || value === null);
     
     // 処理対象行が見つからない場合は処理終了
     if (startIndex === -1) {
-      console.log("A列に値がある行が見つかりませんでした");
-      return "転記対象の行がありませんでした。";
+      console.log("A列に空白行が見つかりませんでした");
+      return "転記対象の空白行がありませんでした。";
     }
     
     const startRow = startIndex + 3; // 実際の行番号（3行目からの相対位置を加算）
