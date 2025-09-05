@@ -37,11 +37,11 @@ function transferToProductSheet() {
     
     // 処理対象行から処理開始
     for (let row = startRow; row <= lastRow; row++) {
-      const targetRow = amazonSalesSheet.getRange(row, 1).getValue(); // A列の行番号
-      const status = amazonSalesSheet.getRange(row, 2).getValue(); // B列のステータス
+      const status = amazonSalesSheet.getRange(row, 1).getValue(); // A列のステータス
+      const targetRow = amazonSalesSheet.getRange(row, 2).getValue(); // B列の行番号
       const transactionType = amazonSalesSheet.getRange(row, 8).getValue(); // H列
       
-      // 転記対象の判定（A列に行番号があり、転記対象外でない）
+      // 転記対象の判定（B列に行番号があり、A列が転記対象外でない）
       if (targetRow && typeof targetRow === "number" && targetRow > 0 && status !== "転記対象外") {
         
         if (transactionType === "配送サービス") {
