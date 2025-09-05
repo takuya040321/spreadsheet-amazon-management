@@ -121,7 +121,7 @@ function processDataRow(rowData, productData, row, usedProductRows, amazonData) 
         return processDeliveryService(row, orderNumberFromI, today, amazonData);
         
       case "調整":
-        return processAdjustment(productData, row, productName, sku, today);
+        return processAdjustment(productData, row, productName, sku, today, usedProductRows);
         
       case "返金":
         const refundOrderNumber = rowData[8]; // I列の注文番号（0ベースなので8）
@@ -147,19 +147,35 @@ function processDataRow(rowData, productData, row, usedProductRows, amazonData) 
   }
 }
 
-function processAdjustment(productData, row, productName, sku, today) {
+function processAdjustment(productData, row, productName, sku, today, usedProductRows) {
+  // FBA在庫返金の場合は転記対象外
   if (productName && productName.includes("FBA在庫の返金 - 購入者による返品:")) {
-    // A列を転記対象外に設定
     return {
       aValue: "転記対象外",
       bValue: "",
       cValue: "",
       dValue: today
     };
-  } else {
-    // 紛失関連の処理：SKU検索・行番号記録
-    return processSKUSearch(productData, row, sku, today);
   }
+  
+  // 紛失関連の処理：SKU検索・行番号記録
+  if (!sku) {
+    console.log(`行 ${row}: SKUが見つかりませんでした、スキップします`);
+    return null;
+  }
+  
+  const foundRow = searchSKUInArray(productData, sku, usedProductRows);
+  if (!foundRow) {
+    console.log(`行 ${row}: SKU ${sku} が見つかりませんでした、スキップします`);
+    return null;
+  }
+  
+  return {
+    aValue: "", // 使用しない
+    bValue: foundRow,
+    cValue: `=HYPERLINK("#gid=431646422&range=A${foundRow}", "リンク")`, // 商品管理シートへのリンク
+    dValue: today
+  };
 }
 
 function processRefund(row, orderNumber, today, amazonData) {
