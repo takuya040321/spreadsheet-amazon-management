@@ -62,38 +62,39 @@ function processTransferRows(amazonData, productSheet, startIndex) {
     const targetRow = amazonData[i][1]; // B列の行番号
     const transactionType = amazonData[i][7]; // H列
     
-    // 転記対象の判定（B列に行番号があり、A列が転記対象外でない）
-    if (targetRow && typeof targetRow === "number" && targetRow > 0 && status !== "転記対象外") {
-      
-      let result = null;
-      
-      switch (transactionType) {
-        case "注文":
-          // 注文の処理
-          result = processSalesDataTransfer(amazonData[i], row, targetRow);
-          break;
-          
-        case "返金":
-          // 返金の処理
-          result = processSalesDataTransfer(amazonData[i], row, targetRow);
-          break;
-          
-        case "配送サービス":
-          // 配送サービスの処理
-          result = processShippingServiceData(amazonData[i], row, targetRow);
-          break;
-          
-        default:
-          // 未対応のトランザクション種類
-          console.log(`行 ${row}: 未対応のトランザクション種類: ${transactionType}`);
-          result = null;
-          break;
-      }
-      
-      if (result) {
-        updates.push(result);
-        transferredCount++;
-      }
+    // A列が空白でない行はスキップ
+    if (status !== "" && status !== null) {
+      continue;
+    }
+    
+    let result = null;
+    
+    switch (transactionType) {
+      case "注文":
+        // 注文の処理
+        result = processSalesDataTransfer(amazonData[i], row, targetRow);
+        break;
+        
+      case "返金":
+        // 返金の処理
+        result = processSalesDataTransfer(amazonData[i], row, targetRow);
+        break;
+        
+      case "配送サービス":
+        // 配送サービスの処理
+        result = processShippingServiceData(amazonData[i], row, targetRow);
+        break;
+        
+      default:
+        // 未対応のトランザクション種類
+        console.log(`行 ${row}: 未対応のトランザクション種類: ${transactionType}`);
+        result = null;
+        break;
+    }
+    
+    if (result) {
+      updates.push(result);
+      transferredCount++;
     }
   }
   
