@@ -222,8 +222,8 @@ function processDeliveryService(row, orderNumber, today, amazonData) {
     return null;
   }
   
-  // Amazon売上シート内でI列の注文番号を検索
-  const foundRow = searchOrderNumberInAmazonData(amazonData, orderNumber);
+  // Amazon売上シート内でI列の注文番号を検索（自分自身を除く）
+  const foundRow = searchOrderNumberInAmazonData(amazonData, orderNumber, row);
   if (foundRow) {
     return {
       aValue: "", // 使用しない
@@ -394,10 +394,15 @@ function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
   return null;
 }
 
-function searchOrderNumberInAmazonData(amazonData, orderNumber) {
+function searchOrderNumberInAmazonData(amazonData, orderNumber, excludeRow = null) {
   for (let i = 0; i < amazonData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const sheetOrderNumber = amazonData[i][8]; // I列（0ベースなので8）
+    
+    // 除外対象行をスキップ
+    if (excludeRow && row === excludeRow) {
+      continue;
+    }
     
     if (String(sheetOrderNumber).trim() === String(orderNumber).trim()) {
       return row;
