@@ -20,14 +20,16 @@ function transferToProductSheet() {
     const lastRow = amazonSalesSheet.getLastRow();
     let transferredCount = 0;
     
+    // Amazon売上シートの全データを一括取得
+    const amazonData = amazonSalesSheet.getRange(3, 1, lastRow - 2, amazonSalesSheet.getLastColumn()).getValues();
+
     // A列の値がある最初の行を効率的に取得
-    const aColumnRange = amazonSalesSheet.getRange(3, 1, lastRow - 2, 1); // A3からA最終行まで
-    const aColumnValues = aColumnRange.getValues().flat(); // 1次元配列に変換
-    const startIndex = aColumnValues.findIndex(value => value && typeof value === "number" && value > 0);
+    const aColumn = amazonData.map(row => row[0]); // A列のデータのみ抽出
+    const startIndex = aColumn.findIndex(value => value && typeof value === "number" && value > 0);
     
     // 処理対象行が見つからない場合は処理終了
     if (startIndex === -1) {
-      console.log("No rows with values found in column A");
+      console.log("A列に値がある行が見つかりませんでした");
       return "転記対象の行がありませんでした。";
     }
     
