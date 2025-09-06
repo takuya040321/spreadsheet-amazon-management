@@ -34,14 +34,7 @@ function transferToProductSheet() {
     }
     
     // 空白行から処理開始
-    const result = processTransferRows(amazonData, productSheet, startIndex);
-    const updates = result.updates;
-    transferredCount = result.transferredCount;
-    
-    // 結果を一括書き込み
-    if (updates.length > 0) {
-      batchUpdateTransferSheet(amazonSalesSheet, productSheet, updates);
-    }
+    transferredCount = processTransferRows(amazonData, amazonSalesSheet, productSheet, startIndex);
     
     console.log(`${transferredCount}行のデータを商品管理シートに転記しました。`);
     return `${transferredCount}行のデータを商品管理シートに転記しました。`;
@@ -52,8 +45,8 @@ function transferToProductSheet() {
   }
 }
 
-function processTransferRows(amazonData, productSheet, startIndex) {
-  const updates = [];
+function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIndex) {
+  const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
   let transferredCount = 0;
   
   for (let i = startIndex; i < amazonData.length; i++) {
@@ -67,38 +60,35 @@ function processTransferRows(amazonData, productSheet, startIndex) {
       continue;
     }
     
-    let result = null;
+    let success = false;
     
     switch (transactionType) {
       case "注文":
-        // 注文の処理
-        result = processSalesDataTransfer(amazonData[i], row, targetRow);
-        break;
-        
       case "返金":
-        // 返金の処理
-        result = processSalesDataTransfer(amazonData[i], row, targetRow);
+        // 注文・返金の処理
+        success = transferSalesData(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       case "配送サービス":
         // 配送サービスの処理
-        result = processShippingServiceData(amazonData[i], row, targetRow);
+        success = processShippingService(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       default:
         // 未対応のトランザクション種類
         console.log(`行 ${row}: 未対応のトランザクション種類: ${transactionType}`);
-        result = null;
+        success = false;
         break;
     }
     
-    if (result) {
-      updates.push(result);
+    if (success) {
+      // Amazon売上シートのE列に処理実行日を記録
+      amazonSalesSheet.getRange(row, 5).setValue(today);
       transferredCount++;
     }
   }
   
-  return { updates, transferredCount };
+  return transferredCount;
 }
 
 function processSalesDataTransfer(rowData, sourceRow, targetRow) {
