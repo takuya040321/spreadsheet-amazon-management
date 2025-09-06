@@ -40,7 +40,7 @@ function transferToProductSheet() {
     return `${transferredCount}行のデータを商品管理シートに転記しました。`;
     
   } catch (error) {
-    console.error("transferToProductSheet error:", error);
+    console.error("商品管理シート転記エラー:", error);
     throw error;
   }
 }
@@ -110,7 +110,7 @@ function processSalesDataTransfer(rowData, sourceRow, targetRow) {
     // 販売価格（S列＋T列）
     const totalSalePrice = Number(sPrice) + Number(tPrice);
     
-    console.log(`Transferred sales data for row ${sourceRow} to product row ${targetRow}`);
+    console.log(`${sourceRow}行目の売上データを商品管理シート${targetRow}行目に転記しました`);
     
     return {
       type: "sales",
@@ -122,7 +122,7 @@ function processSalesDataTransfer(rowData, sourceRow, targetRow) {
     };
     
   } catch (error) {
-    console.error(`Error processing sales data for row ${sourceRow}:`, error);
+    console.error(`${sourceRow}行目の売上データ処理エラー:`, error);
     return null;
   }
 }
@@ -141,7 +141,7 @@ function processShippingServiceData(rowData, sourceRow, targetRow) {
       transferData += String(agData);
     }
     
-    console.log(`Processed shipping service for row ${sourceRow} to product row ${targetRow}`);
+    console.log(`${sourceRow}行目の配送サービスを商品管理シート${targetRow}行目に転記しました`);
     
     return {
       type: "shipping",
@@ -151,7 +151,7 @@ function processShippingServiceData(rowData, sourceRow, targetRow) {
     };
     
   } catch (error) {
-    console.error(`Error processing shipping service for row ${sourceRow}:`, error);
+    console.error(`${sourceRow}行目の配送サービス処理エラー:`, error);
     return null;
   }
 }
@@ -240,11 +240,11 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
     // 売却廃却チェックボックスをTrueに設定
     productSheet.getRange(targetRow, 32).setValue(true); // AF列（売却廃却）
     
-    console.log(`Transferred sales data for row ${sourceRow} to product row ${targetRow}`);
+    console.log(`${sourceRow}行目の売上データを商品管理シート${targetRow}行目に転記完了`);
     return true;
     
   } catch (error) {
-    console.error(`Error transferring sales data for row ${sourceRow}:`, error);
+    console.error(`${sourceRow}行目の売上データ転記エラー:`, error);
     return false;
   }
 }
@@ -267,11 +267,11 @@ function processShippingService(amazonSalesSheet, productSheet, sourceRow, targe
       productSheet.getRange(targetRow, 31).setValue(transferData); // AE列
     }
     
-    console.log(`Processed shipping service for row ${sourceRow} to product row ${targetRow}`);
+    console.log(`${sourceRow}行目の配送サービス処理完了（商品管理シート${targetRow}行目）`);
     return true;
     
   } catch (error) {
-    console.error(`Error processing shipping service for row ${sourceRow}:`, error);
+    console.error(`${sourceRow}行目の配送サービス処理エラー:`, error);
     return false;
   }
 }
@@ -296,7 +296,7 @@ function validateTransferData(amazonSalesSheet, productSheet) {
     return true;
     
   } catch (error) {
-    console.error("validateTransferData error:", error);
+    console.error("転記データ検証エラー:", error);
     throw error;
   }
 }
@@ -332,7 +332,7 @@ function getTransferSummary(amazonSalesSheet) {
     return summary;
     
   } catch (error) {
-    console.error("getTransferSummary error:", error);
+    console.error("転記サマリー取得エラー:", error);
     return null;
   }
 }
