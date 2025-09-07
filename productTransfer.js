@@ -46,7 +46,6 @@ function transferToProductSheet() {
 }
 
 function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIndex) {
-  const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
   let transferredCount = 0;
   
   for (let i = startIndex; i < amazonData.length; i++) {
@@ -64,9 +63,13 @@ function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIn
     
     switch (transactionType) {
       case "注文":
-      case "返金":
-        // 注文・返金の処理
+        // 注文の処理
         success = transferSalesData(amazonSalesSheet, productSheet, row, targetRow);
+        break;
+        
+      case "返金":
+        // 返金の処理
+        success = processRefundData(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       case "配送サービス":
@@ -82,8 +85,6 @@ function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIn
     }
     
     if (success) {
-      // Amazon売上シートのE列に処理実行日を記録
-      amazonSalesSheet.getRange(row, 5).setValue(today);
       transferredCount++;
     }
   }
@@ -250,6 +251,28 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
     
   } catch (error) {
     console.error(`${sourceRow}行目の売上データ転記エラー:`, error);
+    return false;
+  }
+}
+
+function processRefundData(amazonSalesSheet, productSheet, sourceRow, targetRow) {
+  try {
+    // 商品管理シートの売上データをクリア
+    productSheet.getRange(targetRow, 28).clearContent(); // AB列（売上日）
+    productSheet.getRange(targetRow, 29).clearContent(); // AC列（販売価格）
+    productSheet.getRange(targetRow, 30).clearContent(); // AD列（入金価格）
+    productSheet.getRange(targetRow, 32).setValue(false); // AF列（売却廃却）をfalseに設定
+    
+    // Amazon売上シートのA列に「返金処理済み」、E列に処理日を記録
+    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+    amazonSalesSheet.getRange(sourceRow, 1).setValue("返金処理済み"); // A列
+    amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
+    
+    console.log(`${sourceRow}行目の返金処理完了（商品管理シート${targetRow}行目の売上データをクリア）`);
+    return true;
+    
+  } catch (error) {
+    console.error(`${sourceRow}行目の返金処理エラー:`, error);
     return false;
   }
 }
