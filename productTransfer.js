@@ -208,6 +208,14 @@ function batchUpdateTransferSheet(amazonSalesSheet, productSheet, updates) {
 
 function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
+    // targetRowがカンマ区切りの場合に分割して処理
+    const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
+    
+    if (targetRows.length === 0) {
+      console.log(`${sourceRow}行目: 有効な転記先行番号が見つかりません（${targetRow}）`);
+      return false;
+    }
+    
     // 売上データの取得
     const saleDate = amazonSalesSheet.getRange(sourceRow, 6).getValue(); // F列
     const sPrice = amazonSalesSheet.getRange(sourceRow, 19).getValue() || 0; // S列
@@ -222,32 +230,49 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
       formattedDate = String(saleDate);
     }
     
-    // 商品管理シートに転記
-    if (formattedDate) {
-      productSheet.getRange(targetRow, 28).setValue(formattedDate); // AB列（売上日）
-    }
-    
     // 販売価格（S列＋T列）
     const totalSalePrice = Number(sPrice) + Number(tPrice);
-    if (totalSalePrice !== 0) {
-      productSheet.getRange(targetRow, 29).setValue(totalSalePrice); // AC列（販売価格）
+    
+    // 複数の商品管理シート行に転記
+    let successCount = 0;
+    for (const row of targetRows) {
+      try {
+        // 商品管理シートに転記
+        if (formattedDate) {
+          productSheet.getRange(row, 28).setValue(formattedDate); // AB列（売上日）
+        }
+        
+        if (totalSalePrice !== 0) {
+          productSheet.getRange(row, 29).setValue(totalSalePrice); // AC列（販売価格）
+        }
+        
+        if (revenue !== 0) {
+          productSheet.getRange(row, 30).setValue(revenue); // AD列（入金価格）
+        }
+        
+        // 売却廃却チェックボックスをTrueに設定
+        productSheet.getRange(row, 32).setValue(true); // AF列（売却廃却）
+        
+        successCount++;
+        console.log(`${sourceRow}行目の売上データを商品管理シート${row}行目に転記完了`);
+        
+      } catch (rowError) {
+        console.error(`${sourceRow}行目から商品管理シート${row}行目への転記エラー:`, rowError);
+      }
     }
     
-    // 入金価格（AG列）
-    if (revenue !== 0) {
-      productSheet.getRange(targetRow, 30).setValue(revenue); // AD列（入金価格）
+    if (successCount > 0) {
+      // Amazon売上シートのA列に「転記済み」、E列に転記日を記録
+      const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+      amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
+      amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
+      
+      console.log(`${sourceRow}行目: ${successCount}行の転記が完了しました（${targetRows.join(",")}行目）`);
+      return true;
+    } else {
+      console.error(`${sourceRow}行目: すべての転記に失敗しました`);
+      return false;
     }
-    
-    // 売却廃却チェックボックスをTrueに設定
-    productSheet.getRange(targetRow, 32).setValue(true); // AF列（売却廃却）
-    
-    // Amazon売上シートのA列に「転記済み」、E列に転記日を記録
-    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
-    amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
-    amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
-    
-    console.log(`${sourceRow}行目の売上データを商品管理シート${targetRow}行目に転記完了`);
-    return true;
     
   } catch (error) {
     console.error(`${sourceRow}行目の売上データ転記エラー:`, error);
@@ -257,19 +282,44 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
 
 function processRefundData(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
-    // 商品管理シートの売上データをクリア
-    productSheet.getRange(targetRow, 28).clearContent(); // AB列（売上日）
-    productSheet.getRange(targetRow, 29).clearContent(); // AC列（販売価格）
-    productSheet.getRange(targetRow, 30).clearContent(); // AD列（入金価格）
-    productSheet.getRange(targetRow, 32).setValue(false); // AF列（売却廃却）をfalseに設定
+    // targetRowがカンマ区切りの場合に分割して処理
+    const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
     
-    // Amazon売上シートのA列に「返金処理済み」、E列に処理日を記録
-    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
-    amazonSalesSheet.getRange(sourceRow, 1).setValue("返金処理済み"); // A列
-    amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
+    if (targetRows.length === 0) {
+      console.log(`${sourceRow}行目: 有効な返金対象行番号が見つかりません（${targetRow}）`);
+      return false;
+    }
     
-    console.log(`${sourceRow}行目の返金処理完了（商品管理シート${targetRow}行目の売上データをクリア）`);
-    return true;
+    // 複数の商品管理シート行の売上データをクリア
+    let successCount = 0;
+    for (const row of targetRows) {
+      try {
+        // 商品管理シートの売上データをクリア
+        productSheet.getRange(row, 28).clearContent(); // AB列（売上日）
+        productSheet.getRange(row, 29).clearContent(); // AC列（販売価格）
+        productSheet.getRange(row, 30).clearContent(); // AD列（入金価格）
+        productSheet.getRange(row, 32).setValue(false); // AF列（売却廃却）をfalseに設定
+        
+        successCount++;
+        console.log(`${sourceRow}行目の返金処理完了（商品管理シート${row}行目の売上データをクリア）`);
+        
+      } catch (rowError) {
+        console.error(`${sourceRow}行目から商品管理シート${row}行目への返金処理エラー:`, rowError);
+      }
+    }
+    
+    if (successCount > 0) {
+      // Amazon売上シートのA列に「返金処理済み」、E列に処理日を記録
+      const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+      amazonSalesSheet.getRange(sourceRow, 1).setValue("返金処理済み"); // A列
+      amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
+      
+      console.log(`${sourceRow}行目: ${successCount}行の返金処理が完了しました（${targetRows.join(",")}行目）`);
+      return true;
+    } else {
+      console.error(`${sourceRow}行目: すべての返金処理に失敗しました`);
+      return false;
+    }
     
   } catch (error) {
     console.error(`${sourceRow}行目の返金処理エラー:`, error);
