@@ -240,6 +240,11 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
     // 売却廃却チェックボックスをTrueに設定
     productSheet.getRange(targetRow, 32).setValue(true); // AF列（売却廃却）
     
+    // Amazon売上シートのA列に「転記済み」、E列に転記日を記録
+    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+    amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
+    amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
+    
     console.log(`${sourceRow}行目の売上データを商品管理シート${targetRow}行目に転記完了`);
     return true;
     
