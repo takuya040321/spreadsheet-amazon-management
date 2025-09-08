@@ -314,6 +314,21 @@ function processRefundData(amazonSalesSheet, productSheet, sourceRow, targetRow)
       amazonSalesSheet.getRange(sourceRow, 1).setValue("返金処理済み"); // A列
       amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
       
+      // B列から参照されている元の注文行も「返金処理済み」に更新
+      try {
+        const bColumnValue = amazonSalesSheet.getRange(sourceRow, 2).getValue(); // B列の値を取得
+        if (bColumnValue && typeof bColumnValue === "string" && bColumnValue.startsWith("=B")) {
+          // "=B123"のような形式から行番号を抽出
+          const referencedRow = parseInt(bColumnValue.substring(2));
+          if (!isNaN(referencedRow)) {
+            amazonSalesSheet.getRange(referencedRow, 1).setValue("返金処理済み"); // 参照先行のA列
+            console.log(`${referencedRow}行目（元の注文行）もA列を「返金処理済み」に更新しました`);
+          }
+        }
+      } catch (refError) {
+        console.error(`${sourceRow}行目の参照先行更新エラー:`, refError);
+      }
+      
       console.log(`${sourceRow}行目: ${successCount}行の返金処理が完了しました（${targetRows.join(",")}行目）`);
       return true;
     } else {
