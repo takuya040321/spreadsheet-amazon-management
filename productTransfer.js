@@ -77,6 +77,11 @@ function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIn
         success = processShippingService(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
+      case "調整":
+        // 調整の処理
+        success = processAdjustmentData(amazonSalesSheet, productSheet, row, targetRow, amazonData[i]);
+        break;
+        
       default:
         // 未対応のトランザクション種類
         console.log(`行 ${row}: 未対応のトランザクション種類: ${transactionType}`);
@@ -365,6 +370,81 @@ function processShippingService(amazonSalesSheet, productSheet, sourceRow, targe
     
   } catch (error) {
     console.error(`${sourceRow}行目の配送サービス処理エラー:`, error);
+    return false;
+  }
+}
+
+function processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, targetRow, rowData) {
+  try {
+    // targetRowがカンマ区切りの場合に分割して処理
+    const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
+    
+    if (targetRows.length === 0) {
+      console.log(`${sourceRow}行目: 有効な調整対象行番号が見つかりません（${targetRow}）`);
+      return false;
+    }
+    
+    // J列とL列の数値を取得
+    const jValue = rowData[9] || 0; // J列（0ベースなので9）
+    const lValue = parseInt(rowData[11]) || 1; // L列（0ベースなので11）
+    
+    // 売上データの取得
+    const saleDate = rowData[5]; // F列（日付/時間）
+    const sPrice = rowData[18] || 0; // S列（商品売上）
+    const tPrice = rowData[19] || 0; // T列（商品の売上税）
+    const revenue = rowData[32] || 0; // AG列（合計（振込金額））
+    
+    // 日付をYYYY/MM/DD形式に変換
+    let formattedDate = "";
+    if (saleDate instanceof Date) {
+      formattedDate = Utilities.formatDate(saleDate, "Asia/Tokyo", "yyyy/MM/dd");
+    } else if (saleDate) {
+      formattedDate = String(saleDate);
+    }
+    
+    // L列の数値分だけ処理を繰り返す
+    let totalSuccessCount = 0;
+    const processedRows = [];
+    
+    for (let i = 0; i < lValue && i < targetRows.length; i++) {
+      const row = targetRows[i];
+      try {
+        // 商品管理シートに転記（AC列は除く）
+        if (formattedDate) {
+          productSheet.getRange(row, 28).setValue(formattedDate); // AB列（売上日）
+        }
+        
+        if (revenue !== 0) {
+          productSheet.getRange(row, 30).setValue(revenue); // AD列（入金価格）
+        }
+        
+        // 売却廃却チェックボックスをTrueに設定
+        productSheet.getRange(row, 32).setValue(true); // AF列（売却廃却）
+        
+        totalSuccessCount++;
+        processedRows.push(row);
+        console.log(`${sourceRow}行目の調整データを商品管理シート${row}行目に転記完了`);
+        
+      } catch (rowError) {
+        console.error(`${sourceRow}行目から商品管理シート${row}行目への調整転記エラー:`, rowError);
+      }
+    }
+    
+    if (totalSuccessCount > 0) {
+      // Amazon売上シートのA列に「転記済み」、E列に転記日を記録
+      const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+      amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
+      amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
+      
+      console.log(`${sourceRow}行目: ${totalSuccessCount}行の調整処理が完了しました（${processedRows.join(",")}行目）`);
+      return true;
+    } else {
+      console.error(`${sourceRow}行目: すべての調整処理に失敗しました`);
+      return false;
+    }
+    
+  } catch (error) {
+    console.error(`${sourceRow}行目の調整処理エラー:`, error);
     return false;
   }
 }
