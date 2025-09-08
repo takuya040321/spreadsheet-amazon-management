@@ -190,7 +190,7 @@ function processRefund(row, orderNumber, today, amazonData) {
     return {
       aValue: "", // 使用しない
       bValue: `=B${foundRow}`, // 見つかった行のB列を参照
-      cValue: "",
+      cValue: `=C${foundRow}`, // 見つかった行のC列を参照
       dValue: today
     };
   } else {
@@ -245,7 +245,7 @@ function processDeliveryService(row, orderNumber, today, amazonData) {
     return {
       aValue: "", // 使用しない
       bValue: `=B${foundRow}`, // 見つかった行のB列を参照
-      cValue: "",
+      cValue: `=C${foundRow}`, // 見つかった行のC列を参照
       dValue: today
     };
   } else {
