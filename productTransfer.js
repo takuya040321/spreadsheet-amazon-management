@@ -329,21 +329,21 @@ function processRefundData(amazonSalesSheet, productSheet, sourceRow, targetRow)
 
 function processShippingService(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
-    // 配送サービスデータの取得
-    const iData = amazonSalesSheet.getRange(sourceRow, 9).getValue(); // I列
+    // AG列のデータ取得
     const agData = amazonSalesSheet.getRange(sourceRow, 33).getValue(); // AG列
     
-    // 商品管理シートのAE列に転記
-    let transferData = "";
-    if (iData) transferData += String(iData);
     if (agData) {
-      if (transferData) transferData += " / ";
-      transferData += String(agData);
-    }
-    
-    if (transferData) {
+      // マイナス記号を除去してAE列に転記
+      let transferData = String(agData);
+      if (transferData.startsWith("-")) {
+        transferData = transferData.substring(1);
+      }
+      
       productSheet.getRange(targetRow, 31).setValue(transferData); // AE列
     }
+    
+    // Amazon売上シートのA列に「転記済み」を記録
+    amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
     
     console.log(`${sourceRow}行目の配送サービス処理完了（商品管理シート${targetRow}行目）`);
     return true;
