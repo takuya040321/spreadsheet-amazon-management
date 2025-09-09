@@ -235,24 +235,79 @@ function processRefundData(amazonSalesSheet, productSheet, sourceRow, targetRow)
 
 function processShippingService(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
+    // targetRowがカンマ区切りの場合に分割して処理
+    const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
+    
+    if (targetRows.length === 0) {
+      console.log(`${sourceRow}行目: 有効な配送サービス対象行番号が見つかりません（${targetRow}）`);
+      return false;
+    }
+    
     // AG列のデータ取得
     const agData = amazonSalesSheet.getRange(sourceRow, 33).getValue(); // AG列
     
     if (agData) {
-      // マイナス記号を除去してAE列に転記
+      // マイナス記号を除去
       let transferData = String(agData);
       if (transferData.startsWith("-")) {
         transferData = transferData.substring(1);
       }
       
-      productSheet.getRange(targetRow, 31).setValue(transferData); // AE列
+      // 数値として処理して行数で分割
+      const agValue = parseFloat(transferData);
+      if (!isNaN(agValue)) {
+        const dividedValue = agValue / targetRows.length;
+        
+        // 各行にAE列に分割された値を記入
+        let successCount = 0;
+        for (const row of targetRows) {
+          try {
+            productSheet.getRange(row, 31).setValue(dividedValue); // AE列
+            successCount++;
+            console.log(`${sourceRow}行目の配送サービスを商品管理シート${row}行目に記入（値: ${dividedValue}）`);
+          } catch (rowError) {
+            console.error(`${sourceRow}行目から商品管理シート${row}行目への配送サービス記入エラー:`, rowError);
+          }
+        }
+        
+        if (successCount > 0) {
+          // Amazon売上シートのA列に「転記済み」を記録
+          amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
+          
+          console.log(`${sourceRow}行目: ${successCount}行の配送サービス処理が完了しました（${targetRows.join(",")}行目、各行${dividedValue}）`);
+          return true;
+        } else {
+          console.error(`${sourceRow}行目: すべての配送サービス処理に失敗しました`);
+          return false;
+        }
+      } else {
+        // 数値でない場合は従来通り全行に同じ値を記入
+        let successCount = 0;
+        for (const row of targetRows) {
+          try {
+            productSheet.getRange(row, 31).setValue(transferData); // AE列
+            successCount++;
+            console.log(`${sourceRow}行目の配送サービスを商品管理シート${row}行目に記入（値: ${transferData}）`);
+          } catch (rowError) {
+            console.error(`${sourceRow}行目から商品管理シート${row}行目への配送サービス記入エラー:`, rowError);
+          }
+        }
+        
+        if (successCount > 0) {
+          // Amazon売上シートのA列に「転記済み」を記録
+          amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
+          
+          console.log(`${sourceRow}行目: ${successCount}行の配送サービス処理が完了しました（${targetRows.join(",")}行目）`);
+          return true;
+        } else {
+          console.error(`${sourceRow}行目: すべての配送サービス処理に失敗しました`);
+          return false;
+        }
+      }
+    } else {
+      console.log(`${sourceRow}行目: AG列にデータがありません`);
+      return false;
     }
-    
-    // Amazon売上シートのA列に「転記済み」を記録
-    amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
-    
-    console.log(`${sourceRow}行目の配送サービス処理完了（商品管理シート${targetRow}行目）`);
-    return true;
     
   } catch (error) {
     console.error(`${sourceRow}行目の配送サービス処理エラー:`, error);
