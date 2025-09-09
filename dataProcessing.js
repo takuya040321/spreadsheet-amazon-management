@@ -26,7 +26,8 @@ function processData() {
     const amazonData = amazonSalesSheet.getRange(3, 1, lastRow - 2, amazonSalesSheet.getLastColumn()).getValues();
     
     // 商品管理シートの全データを一括取得
-    const productData = getProductSheetData(productSheet);
+    const productLastRow = productSheet.getLastRow();
+    const productData = productLastRow < 2 ? [] : productSheet.getRange(3, 1, productLastRow - 2, productSheet.getLastColumn()).getValues();
     
     // 使用済みの商品管理シート行番号を管理
     const usedProductRows = new Set();
@@ -333,15 +334,6 @@ function getColumnByHeader(sheet, headerName) {
   throw new Error(`Header "${headerName}" not found`);
 }
 
-function getProductSheetData(productSheet) {
-  const lastRow = productSheet.getLastRow();
-  if (lastRow < 2) {
-    return [];
-  }
-  
-  return productSheet.getRange(3, 1, lastRow - 2, productSheet.getLastColumn()).getValues();
-}
-
 function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
   // A列、B列、C列、D列の更新を一括で実行
   const aUpdates = [];
@@ -395,7 +387,22 @@ function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const skuColumnIndex = 24; // Y列（0始まりなので24）
     const sheetSku = productData[i][skuColumnIndex];
-    const status = getProductStatusFromArray(productData[i]);
+    
+    // ステータス計算（元getProductStatusFromArray関数の処理）
+    const zCol = productData[i][25]; // Z列（26列目）
+    const aaCol = productData[i][26]; // AA列（27列目）
+    const afCol = productData[i][31]; // AF列（32列目）
+    
+    let status;
+    if (afCol === true) {
+      status = "4.販売/処分済";
+    } else if (aaCol === true) {
+      status = "3.販売中";
+    } else if (zCol === true) {
+      status = "2.受領/検品済";
+    } else {
+      status = "1.商品未受領";
+    }
     
     // 使用済みの行はスキップ
     if (usedProductRows.has(row)) {
@@ -442,24 +449,6 @@ function searchOrderNumberInArray(productData, orderNumber) {
   
   return null;
 }
-
-function getProductStatusFromArray(rowData) {
-  // IFS関数による動的ステータス計算の実装（0ベースインデックス）
-  const zCol = rowData[25]; // Z列（26列目）
-  const aaCol = rowData[26]; // AA列（27列目）
-  const afCol = rowData[31]; // AF列（32列目）
-  
-  if (afCol === true) {
-    return "4.販売/処分済";
-  } else if (aaCol === true) {
-    return "3.販売中";
-  } else if (zCol === true) {
-    return "2.受領/検品済";
-  } else {
-    return "1.商品未受領";
-  }
-}
-
 
 function getOrderNumberColumnIndex() {
   // 注文番号列のインデックスを返す（商品管理シートの構造に依存）
