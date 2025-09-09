@@ -255,26 +255,6 @@ function processDeliveryService(row, orderNumber, today, amazonData) {
   }
 }
 
-function processSKUSearch(productData, row, sku, today, usedProductRows) {
-  if (!sku) {
-    console.log(`行 ${row}: SKUが見つかりませんでした、スキップします`);
-    return null;
-  }
-  
-  const foundRow = searchSKUInArray(productData, sku, usedProductRows);
-  if (foundRow) {
-    return {
-      aValue: "", // 使用しない
-      bValue: foundRow,
-      cValue: `=HYPERLINK("#gid=431646422&range=A${foundRow}", "リンク")`, // 商品管理シートへのリンク
-      dValue: today
-    };
-  } else {
-    console.log(`行 ${row}: SKU ${sku} が見つかりませんでした、スキップします`);
-    return null;
-  }
-}
-
 function searchSKU(productSheet, sku) {
   const lastRow = productSheet.getLastRow();
   
@@ -284,20 +264,6 @@ function searchSKU(productSheet, sku) {
     
     // 「4.販売/処分済」以外のステータスを検索対象とする
     if (String(sheetSku).trim() === String(sku).trim() && status !== "4.販売/処分済") {
-      return row;
-    }
-  }
-  
-  return null;
-}
-
-function searchOrderNumber(productSheet, orderNumber) {
-  const lastRow = productSheet.getLastRow();
-  
-  for (let row = 2; row <= lastRow; row++) {
-    const sheetOrderNumber = productSheet.getRange(row, getColumnByHeader(productSheet, "注文番号")).getValue();
-    
-    if (String(sheetOrderNumber).trim() === String(orderNumber).trim()) {
       return row;
     }
   }
@@ -434,24 +400,4 @@ function searchOrderNumberInAmazonData(amazonData, orderNumber, excludeRow = nul
   }
   
   return null;
-}
-
-function searchOrderNumberInArray(productData, orderNumber) {
-  for (let i = 0; i < productData.length; i++) {
-    const row = i + 2; // 実際の行番号
-    const orderColumnIndex = getOrderNumberColumnIndex(); // 注文番号列のインデックスを取得
-    const sheetOrderNumber = productData[i][orderColumnIndex];
-    
-    if (String(sheetOrderNumber).trim() === String(orderNumber).trim()) {
-      return row;
-    }
-  }
-  
-  return null;
-}
-
-function getOrderNumberColumnIndex() {
-  // 注文番号列のインデックスを返す（商品管理シートの構造に依存）
-  // 実際のシート構造に合わせて調整が必要
-  return 10; // 仮の値、実際の列位置に合わせて変更
 }
