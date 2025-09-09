@@ -121,8 +121,13 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
       formattedDate = String(saleDate);
     }
     
-    // 販売価格（S列＋T列）
+    // 販売価格（S列＋T列）を行数で分割
     const totalSalePrice = Number(sPrice) + Number(tPrice);
+    const dividedSalePrice = totalSalePrice / targetRows.length;
+    
+    // 入金価格（AG列）を行数で分割
+    const totalRevenue = Number(revenue);
+    const dividedRevenue = totalRevenue / targetRows.length;
     
     // 複数の商品管理シート行に転記
     let successCount = 0;
@@ -134,18 +139,18 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
         }
         
         if (totalSalePrice !== 0) {
-          productSheet.getRange(row, 29).setValue(totalSalePrice); // AC列（販売価格）
+          productSheet.getRange(row, 29).setValue(dividedSalePrice); // AC列（販売価格）
         }
         
         if (revenue !== 0) {
-          productSheet.getRange(row, 30).setValue(revenue); // AD列（入金価格）
+          productSheet.getRange(row, 30).setValue(dividedRevenue); // AD列（入金価格）
         }
         
         // 売却廃却チェックボックスをTrueに設定
         productSheet.getRange(row, 32).setValue(true); // AF列（売却廃却）
         
         successCount++;
-        console.log(`${sourceRow}行目の売上データを商品管理シート${row}行目に転記完了`);
+        console.log(`${sourceRow}行目の売上データを商品管理シート${row}行目に転記完了（販売価格: ${dividedSalePrice}, 入金価格: ${dividedRevenue}）`);
         
       } catch (rowError) {
         console.error(`${sourceRow}行目から商品管理シート${row}行目への転記エラー:`, rowError);
@@ -158,7 +163,7 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
       amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
       amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
       
-      console.log(`${sourceRow}行目: ${successCount}行の転記が完了しました（${targetRows.join(",")}行目）`);
+      console.log(`${sourceRow}行目: ${successCount}行の転記が完了しました（${targetRows.join(",")}行目、各行 販売価格: ${dividedSalePrice}, 入金価格: ${dividedRevenue}）`);
       return true;
     } else {
       console.error(`${sourceRow}行目: すべての転記に失敗しました`);
