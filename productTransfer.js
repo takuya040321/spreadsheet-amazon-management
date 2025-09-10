@@ -276,8 +276,10 @@ function processShippingService(amazonSalesSheet, productSheet, sourceRow, targe
         }
         
         if (successCount > 0) {
-          // Amazon売上シートのA列に「転記済み」を記録
+          // Amazon売上シートのA列に「転記済み」、E列に転記日を記録
+          const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
           amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
+          amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
           
           console.log(`${sourceRow}行目: ${successCount}行の配送サービス処理が完了しました（${targetRows.join(",")}行目、各行${dividedValue}）`);
           return true;
@@ -299,8 +301,10 @@ function processShippingService(amazonSalesSheet, productSheet, sourceRow, targe
         }
         
         if (successCount > 0) {
-          // Amazon売上シートのA列に「転記済み」を記録
+          // Amazon売上シートのA列に「転記済み」、E列に転記日を記録
+          const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
           amazonSalesSheet.getRange(sourceRow, 1).setValue("転記済み"); // A列
+          amazonSalesSheet.getRange(sourceRow, 5).setValue(today); // E列
           
           console.log(`${sourceRow}行目: ${successCount}行の配送サービス処理が完了しました（${targetRows.join(",")}行目）`);
           return true;
