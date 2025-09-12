@@ -12,7 +12,7 @@
  */
 function handleAmazonCsvImport() {
   try {
-    const htmlOutput = HtmlService.createHtmlOutputFromFile("csvDialog")
+    const htmlOutput = HtmlService.createHtmlOutputFromFile("amazonCsvDialog")
       .setWidth(500)
       .setHeight(400);
     SpreadsheetApp.getUi().showModalDialog(htmlOutput, "CSV読み込み");
@@ -55,7 +55,7 @@ function handleAmazonTransfer() {
 function processAmazonCsvContent(csvContent) {
   try {
     console.log("Processing CSV content from dialog...");
-    const csvData = parseCsvContent(csvContent);
+    const csvData = parseAmazonCsvContent(csvContent);
     console.log("Parsed CSV data:", csvData.length, "rows");
     const result = writeToAmazonSalesSheet(csvData);
     console.log("Data written to sheet successfully");
@@ -66,7 +66,7 @@ function processAmazonCsvContent(csvContent) {
   }
 }
 
-function parseCsvContent(csvContent) {
+function parseAmazonCsvContent(csvContent) {
   const lines = csvContent.split("\n");
   
   if (lines.length < 9) {
@@ -79,7 +79,7 @@ function parseCsvContent(csvContent) {
   for (let i = 0; i < dataLines.length; i++) {
     const line = dataLines[i].trim();
     if (line) {
-      const row = parseCSVLine(line);
+      const row = parseAmazonCSVLine(line);
       if (row && row.length > 0) {
         parsedData.push(row);
       }
@@ -89,7 +89,7 @@ function parseCsvContent(csvContent) {
   return parsedData;
 }
 
-function parseCSVLine(line) {
+function parseAmazonCSVLine(line) {
   const result = [];
   let current = "";
   let inQuotes = false;
@@ -133,8 +133,8 @@ function writeToAmazonSalesSheet(csvData) {
     throw new Error("読み込むデータがありません。");
   }
 
-  const existingData = getExistingData(sheet);
-  const newData = filterDuplicates(csvData, existingData);
+  const existingData = getAmazonExistingData(sheet);
+  const newData = filterAmazonDuplicates(csvData, existingData);
   console.log("After duplicate filtering:", newData.length, "rows");
 
   if (newData.length === 0) {
@@ -158,7 +158,7 @@ function writeToAmazonSalesSheet(csvData) {
   return `${newData.length}行のデータを追加しました。`;
 }
 
-function getExistingData(sheet) {
+function getAmazonExistingData(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 1) {
     return [];
@@ -168,19 +168,19 @@ function getExistingData(sheet) {
   return range.getValues().filter(row => row.some(cell => cell !== ""));
 }
 
-function filterDuplicates(newData, existingData) {
+function filterAmazonDuplicates(newData, existingData) {
   if (existingData.length === 0) {
     return newData;
   }
 
   return newData.filter(newRow => {
     return !existingData.some(existingRow => {
-      return arraysEqual(newRow, existingRow);
+      return amazonArraysEqual(newRow, existingRow);
     });
   });
 }
 
-function arraysEqual(a, b) {
+function amazonArraysEqual(a, b) {
   if (a.length !== b.length) return false;
   
   for (let i = 0; i < a.length; i++) {

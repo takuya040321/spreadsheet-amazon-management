@@ -55,7 +55,7 @@ function handleMercariTransfer() {
 function processMercariCsvContent(csvContent) {
   try {
     console.log("Processing Mercari CSV content from dialog...");
-    const csvData = parseCsvContent(csvContent);
+    const csvData = parseMercariCsvContent(csvContent);
     console.log("Parsed Mercari CSV data:", csvData.length, "rows");
     const result = writeToMercariSalesSheet(csvData);
     console.log("Data written to Mercari sheet successfully");
@@ -66,7 +66,7 @@ function processMercariCsvContent(csvContent) {
   }
 }
 
-function parseCsvContent(csvContent) {
+function parseMercariCsvContent(csvContent) {
   const lines = csvContent.split("\n");
   
   if (lines.length < 2) {
@@ -80,7 +80,7 @@ function parseCsvContent(csvContent) {
   for (let i = 0; i < dataLines.length; i++) {
     const line = dataLines[i].trim();
     if (line) {
-      const row = parseCSVLine(line);
+      const row = parseMercariCSVLine(line);
       if (row && row.length > 0) {
         parsedData.push(row);
       }
@@ -90,7 +90,7 @@ function parseCsvContent(csvContent) {
   return parsedData;
 }
 
-function parseCSVLine(line) {
+function parseMercariCSVLine(line) {
   const result = [];
   let current = "";
   let inQuotes = false;
@@ -134,8 +134,8 @@ function writeToMercariSalesSheet(csvData) {
     throw new Error("読み込むデータがありません。");
   }
 
-  const existingData = getExistingData(sheet);
-  const newData = filterDuplicates(csvData, existingData);
+  const existingData = getMercariExistingData(sheet);
+  const newData = filterMercariDuplicates(csvData, existingData);
   console.log("After duplicate filtering:", newData.length, "rows");
 
   if (newData.length === 0) {
@@ -159,7 +159,7 @@ function writeToMercariSalesSheet(csvData) {
   return `${newData.length}行のデータを追加しました。`;
 }
 
-function getExistingData(sheet) {
+function getMercariExistingData(sheet) {
   const gColumnLastRow = sheet.getRange("G:G").getLastRow();
   if (gColumnLastRow < 1) {
     return [];
@@ -169,19 +169,19 @@ function getExistingData(sheet) {
   return range.getValues().filter(row => row.some(cell => cell !== ""));
 }
 
-function filterDuplicates(newData, existingData) {
+function filterMercariDuplicates(newData, existingData) {
   if (existingData.length === 0) {
     return newData;
   }
 
   return newData.filter(newRow => {
     return !existingData.some(existingRow => {
-      return arraysEqual(newRow, existingRow);
+      return mercariArraysEqual(newRow, existingRow);
     });
   });
 }
 
-function arraysEqual(a, b) {
+function mercariArraysEqual(a, b) {
   if (a.length !== b.length) return false;
   
   for (let i = 0; i < a.length; i++) {
