@@ -3,7 +3,7 @@
  * メルカリ売上データを商品管理シートに転記する
  */
 
-function transferToProductSheet() {
+function transferMercariToProductSheet() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");

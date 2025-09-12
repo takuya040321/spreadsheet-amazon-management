@@ -49,7 +49,7 @@
                         uploadButton.textContent = "読み込み実行";
                         statusText.textContent = file.name;
                     })
-                    .processCsvContent(csvContent);
+                    .processAmazonCsvContent(csvContent);
             };
             
             reader.readAsText(file, "UTF-8");

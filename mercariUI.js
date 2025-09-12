@@ -10,7 +10,7 @@
 /**
  * ボタン1: CSVファイル読込
  */
-function handleCsvImport() {
+function handleMercariCsvImport() {
   try {
     const htmlOutput = HtmlService.createHtmlOutputFromFile("mercariCsvDialog")
       .setWidth(500)
@@ -25,9 +25,9 @@ function handleCsvImport() {
 /**
  * ボタン2: データ処理
  */
-function handleDataProcessing() {
+function handleMercariDataProcessing() {
   try {
-    const result = processData();
+    const result = processMercariData();
     SpreadsheetApp.getUi().alert("データ処理が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
@@ -38,9 +38,9 @@ function handleDataProcessing() {
 /**
  * ボタン3: 商品管理転記
  */
-function handleTransfer() {
+function handleMercariTransfer() {
   try {
-    const result = transferToProductSheet();
+    const result = transferMercariToProductSheet();
     SpreadsheetApp.getUi().alert("商品管理シートへの転記が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
@@ -52,7 +52,7 @@ function handleTransfer() {
 /**
  * CSVコンテンツ処理（ダイアログから呼び出される）
  */
-function processCsvContent(csvContent) {
+function processMercariCsvContent(csvContent) {
   try {
     console.log("Processing Mercari CSV content from dialog...");
     const csvData = parseCsvContent(csvContent);

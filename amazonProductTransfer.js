@@ -3,7 +3,7 @@
  * Amazon売上データを商品管理シートに転記する
  */
 
-function transferToProductSheet() {
+function transferAmazonToProductSheet() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const amazonSalesSheet = spreadsheet.getSheetByName("Amazon売上");

@@ -3,7 +3,7 @@
  * 転記先行検索・データ処理機能を実装
  */
 
-function processData() {
+function processAmazonData() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const amazonSalesSheet = spreadsheet.getSheetByName("Amazon売上");

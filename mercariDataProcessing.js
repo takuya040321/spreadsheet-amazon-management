@@ -3,7 +3,7 @@
  * 転記先行検索・データ処理機能を実装
  */
 
-function processData() {
+function processMercariData() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
