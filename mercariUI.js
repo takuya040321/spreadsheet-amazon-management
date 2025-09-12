@@ -144,7 +144,7 @@ function writeToMercariSalesSheet(csvData) {
   }
 
   const lastRow = sheet.getLastRow();
-  const startCol = 6; // F列から開始
+  const startCol = 7; // G列から開始
   const startRow = lastRow + 1;
   const numRows = newData.length;
   const numCols = newData[0].length;
@@ -160,12 +160,12 @@ function writeToMercariSalesSheet(csvData) {
 }
 
 function getExistingData(sheet) {
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 1) {
+  const gColumnLastRow = sheet.getRange("G:G").getLastRow();
+  if (gColumnLastRow < 1) {
     return [];
   }
 
-  const range = sheet.getRange(1, 6, lastRow, sheet.getLastColumn() - 5);
+  const range = sheet.getRange(1, 7, lastRow, sheet.getLastColumn() - 6);
   return range.getValues().filter(row => row.some(cell => cell !== ""));
 }
 
