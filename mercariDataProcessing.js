@@ -63,6 +63,7 @@ function processMercariData() {
 
 function processMercariRows(mercariData, productData, startIndex, usedProductRows) {
   const updates = [];
+  const excludedRows = new Set(); // キャンセルで除外された行を追跡
   let processedCount = 0;
   
   for (let i = startIndex; i < mercariData.length; i++) {
@@ -74,7 +75,13 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
       continue;
     }
     
-    const result = processDataRow(mercariData[i], productData, row, usedProductRows, mercariData);
+    // キャンセルで除外された行はスキップ
+    if (excludedRows.has(row)) {
+      console.log(`行 ${row}: キャンセルで除外済みのためスキップ`);
+      continue;
+    }
+    
+    const result = processDataRow(mercariData[i], productData, row, usedProductRows, mercariData, excludedRows);
     if (!result) {
       continue;
     }
@@ -93,7 +100,7 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
   return { updates, processedCount };
 }
 
-function processDataRow(rowData, productData, row, usedProductRows, mercariData) {
+function processDataRow(rowData, productData, row, usedProductRows, mercariData, excludedRows) {
   try {
     const fValue = rowData[5]; // F列の値（0ベースなので5）
     const gValue = rowData[6]; // G列の値（0ベースなので6）
@@ -111,7 +118,7 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData)
       // G列の値で同じメルカリ売上シートのG列を検索し、該当行を転記対象外にする
       if (gValue && gValue !== "" && gValue !== null) {
         console.log(`G列の値 "${gValue}" で他の行を検索中...`);
-        markRelatedRowsAsExcluded(mercariData, gValue, row);
+        markRelatedRowsAsExcluded(mercariData, gValue, row, excludedRows);
       }
       
       return {
@@ -235,7 +242,7 @@ function batchUpdateMercariSheet(mercariSalesSheet, updates) {
   }
 }
 
-function markRelatedRowsAsExcluded(mercariData, gValue, currentRow) {
+function markRelatedRowsAsExcluded(mercariData, gValue, currentRow, excludedRows) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
   
@@ -259,6 +266,9 @@ function markRelatedRowsAsExcluded(mercariData, gValue, currentRow) {
       
       // A列を「転記対象外」に設定
       mercariSalesSheet.getRange(sheetRow, 1).setValue("転記対象外");
+      
+      // 除外された行をセットに追加（今後の処理でスキップするため）
+      excludedRows.add(sheetRow);
     }
   }
 }
