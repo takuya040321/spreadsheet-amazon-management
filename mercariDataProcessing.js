@@ -112,12 +112,17 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData)
       };
     }
     
-    // O列の値から数量を取得（数字部分を抽出）
+    // O列の値から数量を取得（「個」「つ」の前の数字のみ抽出）
     let quantity = 1; // デフォルトは1個
     if (oValue && typeof oValue === "string") {
-      const quantityMatch = oValue.match(/(\d+)/);
+      // 半角・全角数字の後に「個」「つ」が続くパターンをマッチ
+      const quantityMatch = oValue.match(/([0-9０-９]+)[個つ]/);
       if (quantityMatch) {
-        quantity = parseInt(quantityMatch[1], 10);
+        // 全角数字を半角に変換してからparseInt
+        const numberStr = quantityMatch[1].replace(/[０-９]/g, function(s) {
+          return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+        });
+        quantity = parseInt(numberStr, 10);
       }
     }
     
