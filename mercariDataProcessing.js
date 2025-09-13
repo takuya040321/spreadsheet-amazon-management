@@ -86,6 +86,8 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
       continue;
     }
     
+    console.log(`行 ${row}: 処理結果 - A:"${result.aValue}", B:"${result.bValue}", C:"${result.cValue}", D:"${result.dValue}"`);
+    
     // 使用済み行の管理は各処理関数内で実行
     updates.push({
       row: row,
@@ -111,9 +113,12 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData,
     
     const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
     
-    // I列がキャンセルの場合の処理
+    // I列の詳細ログ出力
+    console.log(`行 ${row}: I列の詳細チェック - 値:"${iValue}", 型:${typeof iValue}, キャンセル判定:${iValue && typeof iValue === "string" && iValue.includes("キャンセル")}`);
+    
+    // I列がキャンセルの場合の処理（最優先）
     if (iValue && typeof iValue === "string" && iValue.includes("キャンセル")) {
-      console.log(`行 ${row}: I列がキャンセルのため転記対象外に設定`);
+      console.log(`行 ${row}: ★キャンセル確定★ I列がキャンセルのため転記対象外に設定（F列検索は絶対にスキップ）`);
       
       // G列の値で同じメルカリ売上シートのG列を検索し、該当行を転記対象外にする
       if (gValue && gValue !== "" && gValue !== null) {
@@ -121,9 +126,11 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData,
         markRelatedRowsAsExcluded(mercariData, gValue, row, excludedRows);
       }
       
+      // キャンセルの場合は早期return（F列検索を実行しない）
+      console.log(`行 ${row}: ★キャンセル処理完了★ 早期returnでF列検索をスキップ`);
       return {
         aValue: "転記対象外",
-        bValue: "",
+        bValue: "", // B列は空のまま
         cValue: "",
         dValue: today
       };
@@ -153,11 +160,12 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData,
       }
     }
     
-    console.log(`検索する数量: ${quantity}個`);
+    console.log(`★F列検索開始★ 行 ${row}: 検索する数量: ${quantity}個`);
     
     // 指定された数量分、F列の値で商品管理シートのY列を検索
     const foundRows = [];
     for (let i = 0; i < quantity; i++) {
+      console.log(`行 ${row}: ${i + 1}個目の検索を実行中...`);
       const foundRow = searchProductByYColumn(productData, fValue, usedProductRows);
       if (!foundRow) {
         console.log(`行 ${row}: F列の値 "${fValue}" の${i + 1}個目が商品管理シートのY列で見つかりませんでした`);
@@ -167,7 +175,7 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData,
       // 使用済み行として記録（次の検索で除外される）
       usedProductRows.add(foundRow);
       foundRows.push(foundRow);
-      console.log(`${i + 1}個目見つかりました: 行番号${foundRow}`);
+      console.log(`行 ${row}: ${i + 1}個目見つかりました: 行番号${foundRow}`);
     }
     
     if (foundRows.length === 0) {
