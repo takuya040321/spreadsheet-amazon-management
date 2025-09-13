@@ -66,6 +66,52 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
   const excludedRows = new Set(); // キャンセルで除外された行を追跡
   let processedCount = 0;
   
+  console.log("★第1フェーズ：キャンセル処理を全て実行★");
+  
+  // 第1フェーズ: キャンセル処理を全て実行
+  for (let i = startIndex; i < mercariData.length; i++) {
+    const row = i + 3; // 実際の行番号（3行目から開始）
+    const aValue = mercariData[i][0]; // A列の値
+    
+    // A列が空白でない行はスキップ
+    if (aValue !== "" && aValue !== null) {
+      continue;
+    }
+    
+    const iValue = mercariData[i][8]; // I列の値（0ベースなので8）
+    
+    // I列がキャンセルの場合の処理
+    if (iValue && typeof iValue === "string" && iValue.includes("キャンセル")) {
+      console.log(`第1フェーズ - 行 ${row}: キャンセル処理を実行`);
+      
+      const gValue = mercariData[i][6]; // G列の値（0ベースなので6）
+      
+      // G列の値で同じメルカリ売上シートのG列を検索し、該当行を転記対象外にする
+      if (gValue && gValue !== "" && gValue !== null) {
+        console.log(`G列の値 "${gValue}" で関連行を除外処理`);
+        const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+        markRelatedRowsAsExcluded(mercariData, gValue, row, excludedRows, today);
+      }
+      
+      // キャンセル行自体も除外対象に追加
+      excludedRows.add(row);
+      
+      const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+      updates.push({
+        row: row,
+        aValue: "転記対象外",
+        bValue: "",
+        cValue: "",
+        dValue: today
+      });
+      processedCount++;
+    }
+  }
+  
+  console.log(`★第1フェーズ完了：${excludedRows.size}行を除外★`);
+  console.log("★第2フェーズ：通常の検索処理を実行★");
+  
+  // 第2フェーズ: 通常の検索処理（キャンセルで除外された行以外）
   for (let i = startIndex; i < mercariData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const aValue = mercariData[i][0]; // A列の値
@@ -77,29 +123,105 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
     
     // キャンセルで除外された行はスキップ
     if (excludedRows.has(row)) {
-      console.log(`行 ${row}: キャンセルで除外済みのためスキップ`);
+      console.log(`第2フェーズ - 行 ${row}: キャンセルで除外済みのためスキップ`);
       continue;
     }
     
-    const result = processDataRow(mercariData[i], productData, row, usedProductRows, mercariData, excludedRows);
+    const result = processNormalDataRow(mercariData[i], productData, row, usedProductRows);
     if (!result) {
       continue;
     }
     
-    console.log(`行 ${row}: 処理結果 - A:"${result.aValue}", B:"${result.bValue}", C:"${result.cValue}", D:"${result.dValue}"`);
+    console.log(`第2フェーズ - 行 ${row}: 処理結果 - A:"${result.aValue}", B:"${result.bValue}", C:"${result.cValue}", D:"${result.dValue}"`);
     
-    // 使用済み行の管理は各処理関数内で実行
     updates.push({
       row: row,
       aValue: result.aValue,
       bValue: result.bValue,
-      cValue: result.cValue || "", // cValueが存在しない場合は空文字
+      cValue: result.cValue || "",
       dValue: result.dValue
     });
     processedCount++;
   }
   
+  console.log("★第2フェーズ完了★");
+  
   return { updates, processedCount };
+}
+
+function processNormalDataRow(rowData, productData, row, usedProductRows) {
+  try {
+    const fValue = rowData[5]; // F列の値（0ベースなので5）
+    const oValue = rowData[14]; // O列の値（0ベースなので14）
+    
+    console.log(`通常処理 - 行 ${row} を処理中: F列=${fValue}, O列=${oValue}`);
+    
+    const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+    
+    // F列が空白の場合は転記対象外
+    if (!fValue || fValue === "" || fValue === null) {
+      return {
+        aValue: "転記対象外",
+        bValue: "",
+        cValue: "",
+        dValue: today
+      };
+    }
+    
+    // O列の値から数量を取得（「個」「つ」の前の数字のみ抽出）
+    let quantity = 1; // デフォルトは1個
+    if (oValue && typeof oValue === "string") {
+      // 半角・全角数字の後に「個」「つ」が続くパターンをマッチ
+      const quantityMatch = oValue.match(/([0-9０-９]+)[個つ]/);
+      if (quantityMatch) {
+        // 全角数字を半角に変換してからparseInt
+        const numberStr = quantityMatch[1].replace(/[０-９]/g, function(s) {
+          return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+        });
+        quantity = parseInt(numberStr, 10);
+      }
+    }
+    
+    console.log(`通常処理 - 行 ${row}: 検索する数量: ${quantity}個`);
+    
+    // 指定された数量分、F列の値で商品管理シートのY列を検索
+    const foundRows = [];
+    for (let i = 0; i < quantity; i++) {
+      console.log(`通常処理 - 行 ${row}: ${i + 1}個目の検索を実行中...`);
+      const foundRow = searchProductByYColumn(productData, fValue, usedProductRows);
+      if (!foundRow) {
+        console.log(`通常処理 - 行 ${row}: F列の値 "${fValue}" の${i + 1}個目が商品管理シートのY列で見つかりませんでした`);
+        break; // 見つからない場合は処理を中断
+      }
+      
+      // 使用済み行として記録（次の検索で除外される）
+      usedProductRows.add(foundRow);
+      foundRows.push(foundRow);
+      console.log(`通常処理 - 行 ${row}: ${i + 1}個目見つかりました: 行番号${foundRow}`);
+    }
+    
+    if (foundRows.length === 0) {
+      console.log(`通常処理 - 行 ${row}: F列の値 "${fValue}" が商品管理シートのY列で見つかりませんでした`);
+      return null;
+    }
+    
+    // 複数の行番号をカンマ区切りでB列に記載
+    const bValue = foundRows.join(",");
+    // 最初の行へのリンクをC列に記載（複数ある場合は最初の行のリンクのみ）
+    const firstRow = foundRows[0];
+    const cValue = `=HYPERLINK("#gid=431646422&range=AB${firstRow}", "リンク")`;
+    
+    return {
+      aValue: "",
+      bValue: bValue,
+      cValue: cValue,
+      dValue: today
+    };
+    
+  } catch (error) {
+    console.error(`通常処理 - Error processing row ${row}:`, error);
+    return null;
+  }
 }
 
 function processDataRow(rowData, productData, row, usedProductRows, mercariData, excludedRows) {
@@ -250,7 +372,7 @@ function batchUpdateMercariSheet(mercariSalesSheet, updates) {
   }
 }
 
-function markRelatedRowsAsExcluded(mercariData, gValue, currentRow, excludedRows) {
+function markRelatedRowsAsExcluded(mercariData, gValue, currentRow, excludedRows, today) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
   
@@ -259,26 +381,44 @@ function markRelatedRowsAsExcluded(mercariData, gValue, currentRow, excludedRows
     return;
   }
   
+  console.log(`★G列検索開始★ 検索値:"${gValue}" 現在行:${currentRow}`);
+  let hitCount = 0;
+  
   // G列の値でメルカリ売上シート内を検索
   for (let i = 0; i < mercariData.length; i++) {
     const dataRow = mercariData[i];
     const sheetRow = i + 3; // 実際の行番号（3行目から開始）
     const dataGValue = dataRow[6]; // G列の値（0ベースなので6）
     
+    console.log(`行 ${sheetRow}: G列値:"${dataGValue}" 一致判定:${String(dataGValue).trim() === String(gValue).trim()} 現在行除外判定:${sheetRow !== currentRow}`);
+    
     // 現在処理中の行は除外し、G列の値が一致する行を検索
     if (sheetRow !== currentRow && 
         dataGValue && 
         String(dataGValue).trim() === String(gValue).trim()) {
       
-      console.log(`G列の値 "${gValue}" でヒットした行 ${sheetRow} を転記対象外に設定`);
+      hitCount++;
+      console.log(`★ヒット★ G列の値 "${gValue}" でヒットした行 ${sheetRow} を転記対象外に設定`);
       
       // A列を「転記対象外」に設定
       mercariSalesSheet.getRange(sheetRow, 1).setValue("転記対象外");
       
+      // 既にB列・C列に値が設定されている場合はクリア
+      mercariSalesSheet.getRange(sheetRow, 2).clearContent(); // B列をクリア
+      mercariSalesSheet.getRange(sheetRow, 3).clearContent(); // C列をクリア
+      
+      // D列に処理日を記入
+      mercariSalesSheet.getRange(sheetRow, 4).setValue(today); // D列に日付を設定
+      
+      console.log(`行 ${sheetRow} のB列・C列をクリア、D列に日付を記入しました`);
+      
       // 除外された行をセットに追加（今後の処理でスキップするため）
       excludedRows.add(sheetRow);
+      console.log(`行 ${sheetRow} をexcludedRowsに追加しました`);
     }
   }
+  
+  console.log(`★G列検索完了★ 検索値:"${gValue}" で ${hitCount} 件ヒットしました`);
 }
 
 function searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
