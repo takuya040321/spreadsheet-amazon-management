@@ -96,8 +96,9 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
 function processDataRow(rowData, productData, row, usedProductRows, mercariData) {
   try {
     const fValue = rowData[5]; // F列の値（0ベースなので5）
+    const oValue = rowData[14]; // O列の値（0ベースなので14）
     
-    console.log(`行 ${row} を処理中: F列=${fValue}`);
+    console.log(`行 ${row} を処理中: F列=${fValue}, O列=${oValue}`);
     
     const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
     
@@ -111,20 +112,47 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData)
       };
     }
     
-    // F列の値で商品管理シートのY列を検索
-    const foundRow = searchSKUInArray(productData, fValue, usedProductRows);
-    if (!foundRow) {
+    // O列の値から数量を取得（数字部分を抽出）
+    let quantity = 1; // デフォルトは1個
+    if (oValue && typeof oValue === "string") {
+      const quantityMatch = oValue.match(/(\d+)/);
+      if (quantityMatch) {
+        quantity = parseInt(quantityMatch[1], 10);
+      }
+    }
+    
+    console.log(`検索する数量: ${quantity}個`);
+    
+    // 指定された数量分、F列の値で商品管理シートのY列を検索
+    const foundRows = [];
+    for (let i = 0; i < quantity; i++) {
+      const foundRow = searchSKUInArray(productData, fValue, usedProductRows);
+      if (!foundRow) {
+        console.log(`行 ${row}: F列の値 "${fValue}" の${i + 1}個目が商品管理シートのY列で見つかりませんでした`);
+        break; // 見つからない場合は処理を中断
+      }
+      
+      // 使用済み行として記録（次の検索で除外される）
+      usedProductRows.add(foundRow);
+      foundRows.push(foundRow);
+      console.log(`${i + 1}個目見つかりました: 行番号${foundRow}`);
+    }
+    
+    if (foundRows.length === 0) {
       console.log(`行 ${row}: F列の値 "${fValue}" が商品管理シートのY列で見つかりませんでした`);
       return null;
     }
     
-    // 使用済み行として記録
-    usedProductRows.add(foundRow);
+    // 複数の行番号をカンマ区切りでB列に記載
+    const bValue = foundRows.join(",");
+    // 最初の行へのリンクをC列に記載（複数ある場合は最初の行のリンクのみ）
+    const firstRow = foundRows[0];
+    const cValue = `=HYPERLINK("#gid=431646422&range=AB${firstRow}", "リンク")`;
     
     return {
       aValue: "",
-      bValue: foundRow,
-      cValue: `=HYPERLINK("#gid=431646422&range=AB${foundRow}", "リンク")`, // 商品管理シートへのリンク
+      bValue: bValue,
+      cValue: cValue,
       dValue: today
     };
     
