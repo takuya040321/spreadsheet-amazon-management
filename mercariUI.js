@@ -54,14 +54,14 @@ function handleMercariTransfer() {
  */
 function processMercariCsvContent(csvContent) {
   try {
-    console.log("Processing Mercari CSV content from dialog...");
+    console.log("ダイアログからメルカリCSVコンテンツを処理中...");
     const csvData = parseMercariCsvContent(csvContent);
-    console.log("Parsed Mercari CSV data:", csvData.length, "rows");
+    console.log("メルカリCSVデータを解析しました:", csvData.length, "行");
     const result = writeToMercariSalesSheet(csvData);
-    console.log("Data written to Mercari sheet successfully");
+    console.log("メルカリシートへのデータ書き込みが完了しました");
     return { success: true, message: "メルカリCSV読み込みが完了しました。\n" + result };
   } catch (error) {
-    console.error("processCsvContent error:", error);
+    console.error("CSVコンテンツ処理エラー:", error);
     throw new Error("メルカリCSVファイルの処理に失敗しました: " + error.message);
   }
 }
@@ -120,13 +120,13 @@ function parseMercariCSVLine(line) {
 }
 
 function writeToMercariSalesSheet(csvData) {
-  console.log("writeToMercariSalesSheet called with", csvData.length, "rows");
+  console.log("writeToMercariSalesSheetが呼び出されました。データ行数:", csvData.length);
   
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = spreadsheet.getSheetByName("メルカリ売上");
   
   if (!sheet) {
-    console.log("Creating new メルカリ売上 sheet");
+    console.log("新しいメルカリ売上シートを作成中");
     sheet = spreadsheet.insertSheet("メルカリ売上");
   }
 
@@ -136,10 +136,10 @@ function writeToMercariSalesSheet(csvData) {
 
   const existingData = getMercariExistingData(sheet);
   const newData = filterMercariDuplicates(csvData, existingData);
-  console.log("After duplicate filtering:", newData.length, "rows");
+  console.log("重複フィルタリング後のデータ行数:", newData.length);
 
   if (newData.length === 0) {
-    console.log("No new data to add");
+    console.log("追加する新しいデータはありません");
     return "重複データのため、新しいデータはありませんでした。";
   }
 
@@ -149,13 +149,13 @@ function writeToMercariSalesSheet(csvData) {
   const numRows = newData.length;
   const numCols = newData[0].length;
   
-  console.log("Writing to sheet starting at row", startRow, "column", startCol);
-  console.log("Range:", numRows, "x", numCols);
+  console.log("シートへの書き込み開始位置 - 行:", startRow, "列:", startCol);
+  console.log("書き込み範囲:", numRows, "行 x", numCols, "列");
   
   const range = sheet.getRange(startRow, startCol, numRows, numCols);
   range.setValues(newData);
 
-  console.log(`${newData.length}行のデータを「メルカリ売上」シートに追加しました。`);
+  console.log(newData.length + "行のデータをメルカリ売上シートに追加しました。");
   return `${newData.length}行のデータを追加しました。`;
 }
 
