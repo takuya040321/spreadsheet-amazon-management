@@ -160,8 +160,8 @@ function writeToMercariSalesSheet(csvData) {
 }
 
 function getMercariExistingData(sheet) {
-  const gColumnLastRow = sheet.getRange("G:G").getLastRow();
-  if (gColumnLastRow < 1) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) {
     return [];
   }
 
