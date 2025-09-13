@@ -96,11 +96,31 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
 function processDataRow(rowData, productData, row, usedProductRows, mercariData) {
   try {
     const fValue = rowData[5]; // F列の値（0ベースなので5）
+    const gValue = rowData[6]; // G列の値（0ベースなので6）
+    const iValue = rowData[8]; // I列の値（0ベースなので8）
     const oValue = rowData[14]; // O列の値（0ベースなので14）
     
-    console.log(`行 ${row} を処理中: F列=${fValue}, O列=${oValue}`);
+    console.log(`行 ${row} を処理中: F列=${fValue}, G列=${gValue}, I列=${iValue}, O列=${oValue}`);
     
     const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+    
+    // I列がキャンセルの場合の処理
+    if (iValue && typeof iValue === "string" && iValue.includes("キャンセル")) {
+      console.log(`行 ${row}: I列がキャンセルのため転記対象外に設定`);
+      
+      // G列の値で同じメルカリ売上シートのG列を検索し、該当行を転記対象外にする
+      if (gValue && gValue !== "" && gValue !== null) {
+        console.log(`G列の値 "${gValue}" で他の行を検索中...`);
+        markRelatedRowsAsExcluded(mercariData, gValue, row);
+      }
+      
+      return {
+        aValue: "転記対象外",
+        bValue: "",
+        cValue: "",
+        dValue: today
+      };
+    }
     
     // F列が空白の場合は転記対象外
     if (!fValue || fValue === "" || fValue === null) {
@@ -131,7 +151,7 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData)
     // 指定された数量分、F列の値で商品管理シートのY列を検索
     const foundRows = [];
     for (let i = 0; i < quantity; i++) {
-      const foundRow = searchSKUInArray(productData, fValue, usedProductRows);
+      const foundRow = searchProductByYColumn(productData, fValue, usedProductRows);
       if (!foundRow) {
         console.log(`行 ${row}: F列の値 "${fValue}" の${i + 1}個目が商品管理シートのY列で見つかりませんでした`);
         break; // 見つからない場合は処理を中断
@@ -212,6 +232,34 @@ function batchUpdateMercariSheet(mercariSalesSheet, updates) {
     dUpdates.forEach(([row, col, value]) => {
       mercariSalesSheet.getRange(row, col).setValue(value);
     });
+  }
+}
+
+function markRelatedRowsAsExcluded(mercariData, gValue, currentRow) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
+  
+  if (!mercariSalesSheet) {
+    console.log("メルカリ売上シートが見つかりません");
+    return;
+  }
+  
+  // G列の値でメルカリ売上シート内を検索
+  for (let i = 0; i < mercariData.length; i++) {
+    const dataRow = mercariData[i];
+    const sheetRow = i + 3; // 実際の行番号（3行目から開始）
+    const dataGValue = dataRow[6]; // G列の値（0ベースなので6）
+    
+    // 現在処理中の行は除外し、G列の値が一致する行を検索
+    if (sheetRow !== currentRow && 
+        dataGValue && 
+        String(dataGValue).trim() === String(gValue).trim()) {
+      
+      console.log(`G列の値 "${gValue}" でヒットした行 ${sheetRow} を転記対象外に設定`);
+      
+      // A列を「転記対象外」に設定
+      mercariSalesSheet.getRange(sheetRow, 1).setValue("転記対象外");
+    }
   }
 }
 
