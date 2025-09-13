@@ -95,14 +95,14 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
 
 function processDataRow(rowData, productData, row, usedProductRows, mercariData) {
   try {
-    const dValue = rowData[3]; // D列の値（0ベースなので3）
+    const fValue = rowData[5]; // F列の値（0ベースなので5）
     
-    console.log(`行 ${row} を処理中: D列=${dValue}`);
+    console.log(`行 ${row} を処理中: F列=${fValue}`);
     
     const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
     
-    // D列が空白の場合は転記対象外
-    if (!dValue || dValue === "" || dValue === null) {
+    // F列が空白の場合は転記対象外
+    if (!fValue || fValue === "" || fValue === null) {
       return {
         aValue: "転記対象外",
         bValue: "",
@@ -111,10 +111,10 @@ function processDataRow(rowData, productData, row, usedProductRows, mercariData)
       };
     }
     
-    // D列の値で商品管理シートのY列を検索
-    const foundRow = searchSKUInArray(productData, dValue, usedProductRows);
+    // F列の値で商品管理シートのY列を検索
+    const foundRow = searchSKUInArray(productData, fValue, usedProductRows);
     if (!foundRow) {
-      console.log(`行 ${row}: D列の値 "${dValue}" が商品管理シートのY列で見つかりませんでした`);
+      console.log(`行 ${row}: F列の値 "${fValue}" が商品管理シートのY列で見つかりませんでした`);
       return null;
     }
     
