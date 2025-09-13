@@ -95,95 +95,43 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
 
 function processDataRow(rowData, productData, row, usedProductRows, mercariData) {
   try {
-    const transactionType = rowData[3]; // D列（取引ステータス）（0ベースなので3）
-    const productName = rowData[2]; // C列（商品名）
-    const itemId = rowData[1]; // B列（商品ID等）
+    const dValue = rowData[3]; // D列の値（0ベースなので3）
     
-    console.log(`行 ${row} を処理中: ${transactionType}`);
+    console.log(`行 ${row} を処理中: D列=${dValue}`);
     
     const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
     
-    // メルカリの取引ステータス別処理
-    switch (transactionType) {
-      case "取引完了":
-        return processSaleComplete(productData, row, productName, itemId, today, usedProductRows);
-        
-      case "取引キャンセル":
-        return processCancellation(row, today);
-        
-      case "返品・返金":
-        return processRefund(row, today);
-        
-      default:
-        console.log(`未対応の取引ステータス: ${transactionType}`);
-        return null;
+    // D列が空白の場合は転記対象外
+    if (!dValue || dValue === "" || dValue === null) {
+      return {
+        aValue: "転記対象外",
+        bValue: "",
+        cValue: "",
+        dValue: today
+      };
     }
+    
+    // D列の値で商品管理シートのY列を検索
+    const foundRow = searchSKUInArray(productData, dValue, usedProductRows);
+    if (!foundRow) {
+      console.log(`行 ${row}: D列の値 "${dValue}" が商品管理シートのY列で見つかりませんでした`);
+      return null;
+    }
+    
+    // 使用済み行として記録
+    usedProductRows.add(foundRow);
+    
+    return {
+      aValue: "",
+      bValue: foundRow,
+      cValue: `=HYPERLINK("#gid=431646422&range=AB${foundRow}", "リンク")`, // 商品管理シートへのリンク
+      dValue: today
+    };
     
   } catch (error) {
     console.error(`Error processing row ${row}:`, error);
     return null;
   }
-}
-
-function processSaleComplete(productData, row, productName, itemId, today, usedProductRows) {
-  // 商品名またはアイテムIDでSKU検索
-  let sku = extractSKU(productName);
-  
-  if (!sku && itemId) {
-    sku = itemId; // アイテムIDをSKUとして扱う場合
-  }
-  
-  if (!sku) {
-    console.log(`行 ${row}: SKUが見つかりませんでした、スキップします`);
-    return null;
-  }
-  
-  const foundRow = searchSKUInArray(productData, sku, usedProductRows);
-  if (!foundRow) {
-    console.log(`行 ${row}: SKU ${sku} が見つかりませんでした、スキップします`);
-    return null;
-  }
-  
-  // 使用済み行として記録
-  usedProductRows.add(foundRow);
-  
-  return {
-    aValue: "", // 使用しない
-    bValue: foundRow,
-    cValue: `=HYPERLINK("#gid=431646422&range=AB${foundRow}", "リンク")`, // 商品管理シートへのリンク
-    dValue: today
-  };
-}
-
-function processCancellation(row, today) {
-  return {
-    aValue: "転記対象外",
-    bValue: "",
-    cValue: "",
-    dValue: today
-  };
-}
-
-function processRefund(row, today) {
-  return {
-    aValue: "返金処理済み",
-    bValue: "",
-    cValue: "",
-    dValue: today
-  };
-}
-
-function extractSKU(productName) {
-  if (!productName) return null;
-  
-  // 商品名からSKUを抽出するロジック
-  // 例: "商品名 [SKU-12345]" -> "SKU-12345"
-  const skuMatch = productName.match(/\[([^\]]+)\]/);
-  if (skuMatch) {
-    return skuMatch[1];
-  }
-  
-  return null;
 }
 
 function batchUpdateMercariSheet(mercariSalesSheet, updates) {
@@ -234,13 +182,12 @@ function batchUpdateMercariSheet(mercariSalesSheet, updates) {
   }
 }
 
-function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
+function searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
-    const skuColumnIndex = 24; // Y列（0始まりなので24）
-    const sheetSku = productData[i][skuColumnIndex];
+    const yColumnValue = productData[i][24]; // Y列（0始まりなので24）
     
-    // ステータス計算（元getProductStatusFromArray関数の処理）
+    // ステータス計算（A列の状態を判定）
     const zCol = productData[i][25]; // Z列（26列目）
     const aaCol = productData[i][26]; // AA列（27列目）
     const afCol = productData[i][31]; // AF列（32列目）
@@ -261,8 +208,8 @@ function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
       continue;
     }
     
-    // 「4.販売/処分済」以外のステータスを検索対象とする
-    if (String(sheetSku).trim() === String(sku).trim() && status !== "4.販売/処分済") {
+    // 「4.販売/処分済」以外のステータスかつY列の値が一致する場合
+    if (String(yColumnValue).trim() === String(searchValue).trim() && status !== "4.販売/処分済") {
       return row;
     }
   }
