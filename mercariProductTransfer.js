@@ -102,10 +102,10 @@ function transferMercariSalesData(mercariSalesSheet, productSheet, sourceRow, ta
       return false;
     }
     
-    // メルカリ売上データの取得（列は適宜調整してください）
-    const saleDate = mercariSalesSheet.getRange(sourceRow, 5).getValue(); // E列（売上日）
-    const salePrice = mercariSalesSheet.getRange(sourceRow, 6).getValue() || 0; // F列（売上価格）
-    const revenue = mercariSalesSheet.getRange(sourceRow, 7).getValue() || 0; // G列（入金額）
+    // メルカリ売上データの取得
+    const saleDate = mercariSalesSheet.getRange(sourceRow, 13).getValue(); // M列（売上日）
+    const salePrice = mercariSalesSheet.getRange(sourceRow, 19).getValue() || 0; // S列（売上価格）
+    const revenue = mercariSalesSheet.getRange(sourceRow, 18).getValue() || 0; // R列（入金額）
     
     // 日付をYYYY/MM/DD形式に変換
     let formattedDate = "";
