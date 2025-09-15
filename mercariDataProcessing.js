@@ -46,10 +46,27 @@ function processMercariData() {
     const result = processMercariRows(mercariData, productData, startIndex, usedProductRows);
     const updates = result.updates;
     const processedCount = result.processedCount;
+    const rowsToDelete = result.rowsToDelete;
     
     // 結果を一括書き込み
     if (updates.length > 0) {
       batchUpdateMercariSheet(mercariSalesSheet, updates);
+    }
+    
+    // 一括書き込み完了後に削除処理を実行
+    console.log("★最終フェーズ：削除処理を実行★");
+    if (rowsToDelete && rowsToDelete.size > 0) {
+      const sortedRowsToDelete = Array.from(rowsToDelete).sort((a, b) => b - a);
+      console.log(`削除対象行（後ろから順番）: ${sortedRowsToDelete.join(", ")}`);
+      
+      for (const rowNum of sortedRowsToDelete) {
+        deleteRow(rowNum);
+        console.log(`最終フェーズ - 行 ${rowNum} を削除しました`);
+      }
+      
+      console.log(`★最終フェーズ完了：${sortedRowsToDelete.length}行を削除★`);
+    } else {
+      console.log("★最終フェーズ：削除対象行なし★");
     }
     
     console.log(`${processedCount}行のデータを処理しました。`);
@@ -64,6 +81,7 @@ function processMercariData() {
 function processMercariRows(mercariData, productData, startIndex, usedProductRows) {
   const updates = [];
   const excludedRows = new Set(); // キャンセルで除外された行を追跡
+  const rowsToDelete = new Set(); // 最後に削除する行番号を蓄積
   let processedCount = 0;
   
   console.log("★第1フェーズ：キャンセル処理を全て実行★");
@@ -86,25 +104,16 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
       
       const gValue = mercariData[i][6]; // G列の値（0ベースなので6）
       
-      // G列の値で同じメルカリ売上シートのG列を検索し、該当行を転記対象外にする
+      // G列の値で同じメルカリ売上シートのG列を検索し、該当行を削除対象に追加
       if (gValue && gValue !== "" && gValue !== null) {
-        console.log(`G列の値 "${gValue}" で関連行を除外処理`);
-        const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
-        markRelatedRowsAsExcluded(mercariData, gValue, row, excludedRows, today);
+        console.log(`G列の値 "${gValue}" で関連行を削除対象に追加`);
+        collectRowsToDelete(mercariData, gValue, row, excludedRows, rowsToDelete);
       }
       
-      // キャンセル行自体も除外対象に追加
+      // キャンセル行自体も削除対象に追加
       excludedRows.add(row);
-      
-      const today = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
-      updates.push({
-        row: row,
-        aValue: "転記対象外",
-        bValue: "",
-        cValue: "",
-        dValue: today
-      });
-      processedCount++;
+      rowsToDelete.add(row);
+      console.log(`第1フェーズ - 行 ${row}: キャンセル行を削除対象に追加`);
     }
   }
   
@@ -146,7 +155,7 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
   
   console.log("★第2フェーズ完了★");
   
-  return { updates, processedCount };
+  return { updates, processedCount, rowsToDelete };
 }
 
 function processNormalDataRow(rowData, productData, row, usedProductRows) {
@@ -372,16 +381,8 @@ function batchUpdateMercariSheet(mercariSalesSheet, updates) {
   }
 }
 
-function markRelatedRowsAsExcluded(mercariData, gValue, currentRow, excludedRows, today) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
-  
-  if (!mercariSalesSheet) {
-    console.log("メルカリ売上シートが見つかりません");
-    return;
-  }
-  
-  console.log(`★G列検索開始★ 検索値:"${gValue}" 現在行:${currentRow}`);
+function collectRowsToDelete(mercariData, gValue, currentRow, excludedRows, rowsToDelete) {
+  console.log(`★G列検索開始（削除対象収集）★ 検索値:"${gValue}" 現在行:${currentRow}`);
   let hitCount = 0;
   
   // G列の値でメルカリ売上シート内を検索
@@ -398,27 +399,35 @@ function markRelatedRowsAsExcluded(mercariData, gValue, currentRow, excludedRows
         String(dataGValue).trim() === String(gValue).trim()) {
       
       hitCount++;
-      console.log(`★ヒット★ G列の値 "${gValue}" でヒットした行 ${sheetRow} を転記対象外に設定`);
+      console.log(`★ヒット★ G列の値 "${gValue}" でヒットした行 ${sheetRow} を削除対象に追加`);
       
-      // A列を「転記対象外」に設定
-      mercariSalesSheet.getRange(sheetRow, 1).setValue("転記対象外");
-      
-      // 既にB列・C列に値が設定されている場合はクリア
-      mercariSalesSheet.getRange(sheetRow, 2).clearContent(); // B列をクリア
-      mercariSalesSheet.getRange(sheetRow, 3).clearContent(); // C列をクリア
-      
-      // D列に処理日を記入
-      mercariSalesSheet.getRange(sheetRow, 4).setValue(today); // D列に日付を設定
-      
-      console.log(`行 ${sheetRow} のB列・C列をクリア、D列に日付を記入しました`);
+      // 削除対象リストに追加
+      rowsToDelete.add(sheetRow);
       
       // 除外された行をセットに追加（今後の処理でスキップするため）
       excludedRows.add(sheetRow);
-      console.log(`行 ${sheetRow} をexcludedRowsに追加しました`);
+      console.log(`行 ${sheetRow} をexcludedRowsと削除対象に追加しました`);
     }
   }
   
-  console.log(`★G列検索完了★ 検索値:"${gValue}" で ${hitCount} 件ヒットしました`);
+  console.log(`★G列検索完了（削除対象収集）★ 検索値:"${gValue}" で ${hitCount} 件を削除対象に追加`);
+}
+
+function deleteRow(rowNumber) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
+  
+  if (!mercariSalesSheet) {
+    console.log("メルカリ売上シートが見つかりません");
+    return;
+  }
+  
+  try {
+    mercariSalesSheet.deleteRow(rowNumber);
+    console.log(`行 ${rowNumber} を削除しました`);
+  } catch (error) {
+    console.error(`行 ${rowNumber} の削除に失敗しました:`, error);
+  }
 }
 
 function searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
