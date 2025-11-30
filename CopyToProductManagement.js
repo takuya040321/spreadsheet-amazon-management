@@ -187,20 +187,25 @@ function validateQuantity(value, rowNumber) {
 
 
 /**
- * シートの実データがある最終行を取得
- * getLastRow()だと書式のみの行も含まれる場合があるため、
- * 実際にデータがある行を探す
+ * シートのC列の最終行を取得
  * @param {Sheet} sheet - 対象シート
  * @returns {number} - 最終行番号（データなしの場合は0）
  */
 function getLastRowWithData(sheet) {
-  const data = sheet.getDataRange().getValues();
+  const lastRow = sheet.getLastRow();
   
-  // 最終行から上に向かって空でない行を探す
-  for (let i = data.length - 1; i >= 0; i--) {
-    const row = data[i];
-    const hasData = row.some(cell => cell !== "" && cell !== null);
-    if (hasData) {
+  // シートにデータがない場合
+  if (lastRow === 0) {
+    return 0;
+  }
+  
+  // C列（3列目）のデータを取得
+  const columnCData = sheet.getRange(1, 3, lastRow, 1).getValues();
+  
+  // 最終行から上に向かって空でないセルを探す
+  for (let i = columnCData.length - 1; i >= 0; i--) {
+    const cellValue = columnCData[i][0];
+    if (cellValue !== "" && cellValue !== null) {
       return i + 1; // 1始まりの行番号
     }
   }
