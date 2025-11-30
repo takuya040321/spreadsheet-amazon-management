@@ -252,10 +252,10 @@ function putListing(accessToken, sku, asin, price) {
               encodedSku +
               "?marketplaceIds=" + CONFIG.MARKETPLACE_ID;
   
-  // リクエストボディ
+  // リクエストボディ（既存ASINへの相乗り出品用：最小限の属性のみ）
   const body = {
     productType: productType,
-    requirements: "LISTING",
+    requirements: "LISTING_OFFER_ONLY",  // 価格・コンディション・フルフィルメントのみ
     attributes: {
       condition_type: [
         {
@@ -290,13 +290,13 @@ function putListing(accessToken, sku, asin, price) {
           marketplace_id: CONFIG.MARKETPLACE_ID
         }
       ],
-      // 電池/バッテリーが必要な商品ですか？ → いいえ
+      // 電池本体、電池が必要な商品 → いいえ
       batteries_required: [
         {
           value: false
         }
       ],
-      // 商品に適用される危険物規制の種類 → 該当なし
+      // 危険物規制 → 該当なし
       supplier_declared_dg_hz_regulation: [
         {
           value: "not_applicable"
