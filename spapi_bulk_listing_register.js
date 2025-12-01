@@ -122,7 +122,7 @@ function registerSelectedProducts() {
         asin: asin,
         status: "成功",
         errorType: null,
-        message: response.status || "登録完了"
+        message: response.status || "FBA出品登録完了"
       };
       results.push(result);
       updateResultCell(sheet, rowNumber, result);
@@ -347,7 +347,7 @@ function putListing(accessToken, sku, asin, price) {
     return { status: "登録完了（警告あり）: " + analysisResult.message };
   }
   
-  return { status: "ACCEPTED" };
+  return { status: "FBA出品登録完了" };
 }
 
 // ============================================
@@ -592,6 +592,15 @@ function getDisplayConfig(status, errorType) {
       text: "✓ 成功",
       bgColor: "#d4edda",  // 薄い緑
       fontColor: "#155724"  // 濃い緑
+    };
+  }
+  
+  // 警告
+  if (status === "警告") {
+    return {
+      text: "⚠ 警告",
+      bgColor: "#fff3cd",  // 薄いオレンジ
+      fontColor: "#856404"  // 濃いオレンジ
     };
   }
   
