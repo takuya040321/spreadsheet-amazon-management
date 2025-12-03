@@ -57,7 +57,9 @@ function copyCheckedRowsToProductManagement() {
   Logger.log("データ行数: " + dataRowCount);
   
   // コピー用データを格納する配列
-  const rowsToCopy = [];
+  const rowsToCopyCO = [];  // C列～O列用
+  const rowsToCopyY = [];   // Y列用
+  const processedSourceRows = [];  // 処理したコピー元の行番号を記録
   let processedRows = 0;
   let skippedRows = 0;
   
@@ -93,19 +95,15 @@ function copyCheckedRowsToProductManagement() {
       
       // 個数分のデータを配列に追加
       for (let j = 0; j < validQuantity; j++) {
-        // 1行分のデータを作成（A列、B列は空、C列～O列、P列～X列は空、Y列にデータ）
-        const newRow = new Array(25).fill("");
+        // C列～O列のデータ（13列分）
+        rowsToCopyCO.push(rowDataCO.slice());
         
-        // C列～O列のデータをセット（インデックス2～14）
-        for (let k = 0; k < rowDataCO.length; k++) {
-          newRow[k + 2] = rowDataCO[k];
-        }
-        
-        // Y列のデータをセット（インデックス24）
-        newRow[24] = rowDataY;
-        
-        rowsToCopy.push(newRow);
+        // Y列のデータ（1列分）
+        rowsToCopyY.push([rowDataY]);
       }
+      
+      // 処理した行番号を記録
+      processedSourceRows.push(rowNumber);
       
       processedRows++;
       Logger.log("行 " + rowNumber + ": " + validQuantity + "行分コピー対象に追加");
@@ -113,7 +111,7 @@ function copyCheckedRowsToProductManagement() {
   }
   
   // コピーするデータがない場合
-  if (rowsToCopy.length === 0) {
+  if (rowsToCopyCO.length === 0) {
     SpreadsheetApp.getUi().alert("コピー対象のデータがありません。\nチェックボックスを確認してください。");
     Logger.log("コピー対象なし");
     return;
@@ -125,18 +123,36 @@ function copyCheckedRowsToProductManagement() {
   
   Logger.log("商品管理シートの最終行: " + targetLastRow);
   Logger.log("挿入開始行: " + insertStartRow);
-  Logger.log("挿入行数: " + rowsToCopy.length);
+  Logger.log("挿入行数: " + rowsToCopyCO.length);
   
-  // 一括書き込み
+  // 一括書き込み（C列～O列とY列のみを書き込み、他の列は影響を与えない）
   try {
-    const targetRange = targetSheet.getRange(insertStartRow, 1, rowsToCopy.length, 25);
-    targetRange.setValues(rowsToCopy);
+    // C列～O列に書き込み（列3から13列分）
+    const targetRangeCO = targetSheet.getRange(insertStartRow, 3, rowsToCopyCO.length, 13);
+    targetRangeCO.setValues(rowsToCopyCO);
+    
+    // Y列に書き込み（列25）
+    const targetRangeY = targetSheet.getRange(insertStartRow, 25, rowsToCopyY.length, 1);
+    targetRangeY.setValues(rowsToCopyY);
+    
+    Logger.log("コピー完了: " + rowsToCopyCO.length + "行");
+    
+    // コピー元のデータを削除（C列～O列、Y列）
+    for (const rowNumber of processedSourceRows) {
+      // C列～O列をクリア（列3から13列分）
+      sourceSheet.getRange(rowNumber, 3, 1, 13).clearContent();
+      
+      // Y列をクリア（列25）
+      sourceSheet.getRange(rowNumber, 25, 1, 1).clearContent();
+      
+      Logger.log("コピー元 行 " + rowNumber + ": データ削除完了");
+    }
     
     // 処理完了メッセージ
-    const message = rowsToCopy.length + "行分のデータをコピーしました。\n" +
-                    "（チェック行数: " + processedRows + "行、スキップ: " + skippedRows + "行）";
+    const message = rowsToCopyCO.length + "行分のデータをコピーしました。\n" +
+                    "（チェック行数: " + processedRows + "行、スキップ: " + skippedRows + "行）\n" +
+                    "コピー元のデータは削除されました。";
     SpreadsheetApp.getUi().alert(message);
-    Logger.log("コピー完了: " + rowsToCopy.length + "行");
     
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
@@ -244,6 +260,9 @@ function showUsage() {
     "・3行目以降：データ行\n\n" +
     "【コピー対象列】\n" +
     "C列～O列、Y列\n\n" +
+    "【処理内容】\n" +
+    "・商品管理シートにC列～O列、Y列のみ転記\n" +
+    "・転記後、コピー元のC列～O列、Y列を削除\n\n" +
     "【注意事項】\n" +
     "・「商品管理」シートが必要です\n" +
     "・個数は1～1000の範囲で指定してください\n" +
