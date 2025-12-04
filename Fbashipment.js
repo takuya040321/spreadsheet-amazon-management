@@ -106,10 +106,9 @@ function getSelectedSkus_() {
   
   // 各行のY列（25列目）からSKUを取得して集計
   const skuCounts = {};
-  const SKU_COLUMN = 25; // Y列 = 25列目
-  
+
   selectedRows.forEach(rowNum => {
-    const sku = sheet.getRange(rowNum, SKU_COLUMN).getValue();
+    const sku = sheet.getRange(rowNum, PRODUCT_MANAGEMENT_CONFIG.COLUMN.SKU_COPY).getValue();
     
     if (sku && String(sku).trim() !== "") {
       const skuStr = String(sku).trim();

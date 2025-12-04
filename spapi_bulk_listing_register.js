@@ -3,21 +3,6 @@
  */
 
 // ============================================
-// 設定（スプレッドシート列・データ設定のみ）
-// ============================================
-const CONFIG = {
-  COLUMN: {
-    CHECKBOX: 1,      // A列
-    PRODUCT_NAME: 5,  // E列
-    ASIN: 6,          // F列
-    PRICE: 8,         // H列
-    SKU: 24,          // X列
-    SKU_COPY: 25      // Y列
-  },
-  DATA_START_ROW: 3   // データ開始行（ヘッダーの次の行）
-};
-
-// ============================================
 // プロパティから設定値を取得
 // ============================================
 function getScriptConfig() {
@@ -49,7 +34,7 @@ function registerSelectedProducts() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const lastRow = sheet.getLastRow();
 
-  if (lastRow < CONFIG.DATA_START_ROW) {
+  if (lastRow < PROFIT_SHEET_CONFIG.DATA_START_ROW) {
     showResult("エラー", "処理対象のデータがありません。");
     return;
   }
@@ -63,7 +48,7 @@ function registerSelectedProducts() {
     return;
   }
 
-  const dataRange = sheet.getRange(CONFIG.DATA_START_ROW, 1, lastRow - CONFIG.DATA_START_ROW + 1, CONFIG.COLUMN.SKU);
+  const dataRange = sheet.getRange(PROFIT_SHEET_CONFIG.DATA_START_ROW, 1, lastRow - PROFIT_SHEET_CONFIG.DATA_START_ROW + 1, PROFIT_SHEET_CONFIG.COLUMN.SKU);
   const data = dataRange.getValues();
   const results = [];
   let successCount = 0;
@@ -71,13 +56,13 @@ function registerSelectedProducts() {
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    const isChecked = row[CONFIG.COLUMN.CHECKBOX - 1];
+    const isChecked = row[PROFIT_SHEET_CONFIG.COLUMN.CHECKBOX - 1];
     if (isChecked !== true) continue;
 
-    const rowNumber = i + CONFIG.DATA_START_ROW;
-    const asin = String(row[CONFIG.COLUMN.ASIN - 1]).trim();
-    const sku = String(row[CONFIG.COLUMN.SKU - 1]).trim();
-    const price = row[CONFIG.COLUMN.PRICE - 1];
+    const rowNumber = i + PROFIT_SHEET_CONFIG.DATA_START_ROW;
+    const asin = String(row[PROFIT_SHEET_CONFIG.COLUMN.ASIN - 1]).trim();
+    const sku = String(row[PROFIT_SHEET_CONFIG.COLUMN.SKU - 1]).trim();
+    const price = row[PROFIT_SHEET_CONFIG.COLUMN.PRICE - 1];
 
     if (!asin || !sku || !price || isNaN(price) || price <= 0) {
       const result = {
