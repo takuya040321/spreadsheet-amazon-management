@@ -106,9 +106,10 @@ function getSelectedSkus_() {
   
   // 各行のY列（25列目）からSKUを取得して集計
   const skuCounts = {};
-
+  const SKU_COLUMN = 25; // Y列 = 25列目
+  
   selectedRows.forEach(rowNum => {
-    const sku = sheet.getRange(rowNum, PRODUCT_MANAGEMENT_CONFIG.COLUMN.SKU_COPY).getValue();
+    const sku = sheet.getRange(rowNum, SKU_COLUMN).getValue();
     
     if (sku && String(sku).trim() !== "") {
       const skuStr = String(sku).trim();
@@ -259,21 +260,49 @@ function createFbaInboundPlan_(skuCounts) {
   // 出荷元住所を取得
   const sourceAddress = getSourceAddress_();
   
-  // リクエストボディを構築
-  // items配列を作成（各SKUと数量）
-  const items = [];
-  for (const [msku, quantity] of Object.entries(skuCounts)) {
-    items.push({
-      msku: msku,
-      quantity: quantity,
-      prepOwner: "NONE",
-      labelOwner: "SELLER"  // ラベル貼付はセラーが行う
-    });
+  // SKU一覧を取得
+  const mskus = Object.keys(skuCounts);
+  
+  // 1. まずlistPrepDetailsで現在の設定を確認
+  console.log("ステップ3-1: listPrepDetailsで梱包カテゴリーを確認中...");
+  const prepDetails = listPrepDetails_(endpoint, accessToken, marketplaceId, mskus);
+  
+  // 2. 未設定（UNKNOWNまたはnull）のSKUを抽出
+  const skusNeedingPrep = [];
+  for (const detail of prepDetails) {
+    if (!detail.prepCategory || detail.prepCategory === "UNKNOWN") {
+      skusNeedingPrep.push(detail.msku);
+      console.log(`SKU "${detail.msku}" の梱包カテゴリーが未設定です`);
+    } else {
+      console.log(`SKU "${detail.msku}" の梱包カテゴリー: ${detail.prepCategory}`);
+    }
   }
+  
+  // 3. 未設定のSKUがあればsetPrepDetailsで設定
+  if (skusNeedingPrep.length > 0) {
+    console.log(`ステップ3-2: ${skusNeedingPrep.length}件のSKUに梱包カテゴリーを設定中...`);
+    setPrepDetails_(endpoint, accessToken, marketplaceId, skusNeedingPrep);
+    console.log("梱包カテゴリーの設定が完了しました");
+  } else {
+    console.log("全てのSKUに梱包カテゴリーが設定済みです");
+  }
+  
+  // 4. 納品プラン作成に進む
+  console.log("ステップ3-3: 納品プラン作成中...");
+  
+  // リクエストボディを構築
+  // 3ヶ月後の日付を計算（消費期限用）
+  const expirationDate = new Date();
+  expirationDate.setMonth(expirationDate.getMonth() + 3);
+  const expiration = Utilities.formatDate(expirationDate, "Asia/Tokyo", "yyyy-MM-dd");
+  console.log("消費期限（3ヶ月後）:", expiration);
   
   // 納品プラン名を生成（日時を含める）
   const now = new Date();
   const planName = Utilities.formatDate(now, "Asia/Tokyo", "yyyyMMdd_HHmmss") + "_GAS作成";
+  
+  // items配列を作成（各SKUと数量）
+  const items = buildItemsArray_(skuCounts, expiration, {});
   
   const requestBody = {
     destinationMarketplaces: [marketplaceId],
@@ -301,12 +330,21 @@ function createFbaInboundPlan_(skuCounts) {
   
   console.log("SP-API呼び出し URL:", url);
   
-  const response = UrlFetchApp.fetch(url, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
+  // 最初の試行（全てSELLERで送信）
+  let response = UrlFetchApp.fetch(url, options);
+  let responseCode = response.getResponseCode();
+  let responseBody = response.getContentText();
   
   console.log("SP-APIレスポンスコード:", responseCode);
   console.log("SP-APIレスポンスボディ:", responseBody);
+  
+  // prepOwnerエラーの場合、該当SKUをNONEにしてリトライ
+  if (responseCode === 400) {
+    const retryResult = handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, apiPath, accessToken, marketplaceId, sourceAddress, planName);
+    if (retryResult) {
+      return retryResult;
+    }
+  }
   
   if (responseCode !== 200 && responseCode !== 202) {
     // エラーレスポンスをパース
@@ -331,6 +369,210 @@ function createFbaInboundPlan_(skuCounts) {
 // ===========================================
 // 結果表示処理
 // ===========================================
+
+/**
+ * listPrepDetails APIを呼び出して、SKUの梱包カテゴリー設定状況を取得する
+ * @param {string} endpoint - SP-APIエンドポイント
+ * @param {string} accessToken - アクセストークン
+ * @param {string} marketplaceId - マーケットプレイスID
+ * @param {Array} mskus - SKUの配列
+ * @returns {Array} 各SKUの梱包詳細情報
+ */
+function listPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
+  // クエリパラメータを構築（GASではURLSearchParamsが使えないため手動で構築）
+  const params = ["marketplaceId=" + encodeURIComponent(marketplaceId)];
+  mskus.forEach(msku => params.push("mskus=" + encodeURIComponent(msku)));
+  
+  const apiPath = "/inbound/fba/2024-03-20/items/prepDetails?" + params.join("&");
+  const url = endpoint + apiPath;
+  
+  const options = {
+    method: "get",
+    headers: {
+      "x-amz-access-token": accessToken,
+      "Accept": "application/json"
+    },
+    muteHttpExceptions: true
+  };
+  
+  console.log("listPrepDetails URL:", url);
+  
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+  
+  console.log("listPrepDetails レスポンスコード:", responseCode);
+  console.log("listPrepDetails レスポンスボディ:", responseBody);
+  
+  if (responseCode !== 200) {
+    console.warn("listPrepDetails APIエラー。全SKUを未設定として扱います。");
+    // エラーの場合は全SKUを未設定として返す
+    return mskus.map(msku => ({ msku: msku, prepCategory: null }));
+  }
+  
+  const result = JSON.parse(responseBody);
+  return result.mskuPrepDetails || [];
+}
+
+/**
+ * setPrepDetails APIを呼び出して、SKUの梱包カテゴリーを設定する
+ * @param {string} endpoint - SP-APIエンドポイント
+ * @param {string} accessToken - アクセストークン
+ * @param {string} marketplaceId - マーケットプレイスID
+ * @param {Array} mskus - 設定するSKUの配列
+ */
+function setPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
+  const apiPath = "/inbound/fba/2024-03-20/items/prepDetails";
+  const url = endpoint + apiPath;
+  
+  // リクエストボディを構築
+  // デフォルトは prepCategory: "NONE", prepTypes: ["ITEM_NO_PREP"]
+  const mskuPrepDetails = mskus.map(msku => ({
+    msku: msku,
+    prepCategory: "NONE",
+    prepTypes: ["ITEM_NO_PREP"]
+  }));
+  
+  const requestBody = {
+    marketplaceId: marketplaceId,
+    mskuPrepDetails: mskuPrepDetails
+  };
+  
+  console.log("setPrepDetails リクエストボディ:", JSON.stringify(requestBody, null, 2));
+  
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      "x-amz-access-token": accessToken,
+      "Accept": "application/json"
+    },
+    payload: JSON.stringify(requestBody),
+    muteHttpExceptions: true
+  };
+  
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+  
+  console.log("setPrepDetails レスポンスコード:", responseCode);
+  console.log("setPrepDetails レスポンスボディ:", responseBody);
+  
+  if (responseCode !== 200 && responseCode !== 202) {
+    // エラーの場合はログに記録するが、処理は続行
+    console.warn("setPrepDetails APIエラー:", responseBody);
+    // 一部のSKUでエラーが出ても続行するため、例外はスローしない
+  }
+}
+
+/**
+ * items配列を構築する
+ * @param {Object} skuCounts - SKUと個数のマップ
+ * @param {string} expiration - 消費期限（yyyy-MM-dd形式）
+ * @param {Object} prepOwnerOverrides - prepOwnerを上書きするSKUのマップ（SKU: "NONE"）
+ * @returns {Array} items配列
+ */
+function buildItemsArray_(skuCounts, expiration, prepOwnerOverrides) {
+  const items = [];
+  for (const [msku, quantity] of Object.entries(skuCounts)) {
+    const prepOwner = prepOwnerOverrides[msku] || "SELLER";
+    items.push({
+      msku: msku,
+      quantity: quantity,
+      prepOwner: prepOwner,
+      labelOwner: "SELLER",
+      expiration: expiration
+    });
+  }
+  return items;
+}
+
+/**
+ * prepOwnerエラーを解析し、該当SKUをNONEにしてリトライする
+ * @param {string} responseBody - エラーレスポンス
+ * @param {Object} skuCounts - SKUと個数のマップ
+ * @param {string} expiration - 消費期限
+ * @param {string} endpoint - APIエンドポイント
+ * @param {string} apiPath - APIパス
+ * @param {string} accessToken - アクセストークン
+ * @param {string} marketplaceId - マーケットプレイスID
+ * @param {Object} sourceAddress - 出荷元住所
+ * @param {string} planName - 納品プラン名
+ * @returns {Object|null} 成功時はAPIレスポンス、リトライ不要または失敗時はnull
+ */
+function handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, apiPath, accessToken, marketplaceId, sourceAddress, planName) {
+  try {
+    const errorData = JSON.parse(responseBody);
+    if (!errorData.errors || errorData.errors.length === 0) {
+      return null;
+    }
+    
+    // prepOwnerエラーのSKUを抽出
+    const prepOwnerOverrides = {};
+    let hasPrepOwnerError = false;
+    
+    for (const error of errorData.errors) {
+      // エラーメッセージからSKUを抽出
+      // 例: "ERROR: DHC-2511-0880-1312-1700-B00SY1A5F2 does not require prepOwner but SELLER was assigned"
+      const match = error.message.match(/ERROR:\s*(\S+)\s+does not require prepOwner/);
+      if (match) {
+        const sku = match[1];
+        console.log("prepOwner不要のSKUを検出:", sku);
+        prepOwnerOverrides[sku] = "NONE";
+        hasPrepOwnerError = true;
+      }
+    }
+    
+    if (!hasPrepOwnerError) {
+      console.log("prepOwnerエラーではないため、リトライしません");
+      return null;
+    }
+    
+    console.log("prepOwnerをNONEに変更してリトライします:", JSON.stringify(prepOwnerOverrides));
+    
+    // items配列を再構築
+    const items = buildItemsArray_(skuCounts, expiration, prepOwnerOverrides);
+    
+    const requestBody = {
+      destinationMarketplaces: [marketplaceId],
+      items: items,
+      sourceAddress: sourceAddress,
+      name: planName
+    };
+    
+    console.log("リトライ リクエストボディ:", JSON.stringify(requestBody, null, 2));
+    
+    const options = {
+      method: "post",
+      contentType: "application/json",
+      headers: {
+        "x-amz-access-token": accessToken,
+        "Accept": "application/json"
+      },
+      payload: JSON.stringify(requestBody),
+      muteHttpExceptions: true
+    };
+    
+    const url = endpoint + apiPath;
+    const response = UrlFetchApp.fetch(url, options);
+    const retryResponseCode = response.getResponseCode();
+    const retryResponseBody = response.getContentText();
+    
+    console.log("リトライ レスポンスコード:", retryResponseCode);
+    console.log("リトライ レスポンスボディ:", retryResponseBody);
+    
+    if (retryResponseCode === 200 || retryResponseCode === 202) {
+      return JSON.parse(retryResponseBody);
+    }
+    
+    // リトライも失敗した場合はnullを返し、元のエラー処理に任せる
+    return null;
+    
+  } catch (e) {
+    console.error("リトライ処理中にエラー:", e.message);
+    return null;
+  }
+}
 
 /**
  * 処理結果を表示し、セラーセントラルを開く
