@@ -3,6 +3,38 @@
  * Amazon売上データを商品管理シートに転記する
  */
 
+/**
+ * 日付をDateオブジェクトに変換する（時刻部分を除去）
+ * @param {Date|string} dateValue - 変換する日付
+ * @returns {Date|null} 日付のみのDateオブジェクト、変換失敗時はnull
+ */
+function parseDateOnly(dateValue) {
+  if (!dateValue) return null;
+  
+  let targetDate;
+  
+  if (dateValue instanceof Date) {
+    targetDate = dateValue;
+  } else {
+    const dateString = String(dateValue);
+    // "2025/11/30 14:20:38 JST" のような形式から日付部分を抽出
+    const dateMatch = dateString.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+    if (dateMatch) {
+      targetDate = new Date(parseInt(dateMatch[1]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[3]));
+    } else {
+      // 別の形式の場合はDateオブジェクトに変換を試みる
+      targetDate = new Date(dateString);
+    }
+  }
+  
+  if (isNaN(targetDate.getTime())) {
+    return null;
+  }
+  
+  // 時刻を0時0分0秒にリセットして日付のみにする
+  return new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+}
+
 function transferAmazonToProductSheet() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -34,7 +66,7 @@ function transferAmazonToProductSheet() {
     }
     
     // 空白行から処理開始
-    transferredCount = processTransferRows(amazonData, amazonSalesSheet, productSheet, startIndex);
+    transferredCount = processTransferRowsAmazon(amazonData, amazonSalesSheet, productSheet, startIndex);
     
     console.log(`${transferredCount}行のデータを商品管理シートに転記しました。`);
     return `${transferredCount}行のデータを商品管理シートに転記しました。`;
@@ -45,7 +77,7 @@ function transferAmazonToProductSheet() {
   }
 }
 
-function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIndex) {
+function processTransferRowsAmazon(amazonData, amazonSalesSheet, productSheet, startIndex) {
   let transferredCount = 0;
   
   for (let i = startIndex; i < amazonData.length; i++) {
@@ -64,12 +96,12 @@ function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIn
     switch (transactionType) {
       case "注文":
         // 注文の処理
-        success = transferSalesData(amazonSalesSheet, productSheet, row, targetRow);
+        success = transferSalesDataAmazon(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       case "返金":
         // 返金の処理
-        success = processRefundData(amazonSalesSheet, productSheet, row, targetRow);
+        success = processRefundDataAmazon(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       case "配送サービス":
@@ -97,7 +129,7 @@ function processTransferRows(amazonData, amazonSalesSheet, productSheet, startIn
   return transferredCount;
 }
 
-function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow) {
+function transferSalesDataAmazon(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
@@ -113,13 +145,8 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
     const tPrice = amazonSalesSheet.getRange(sourceRow, 20).getValue() || 0; // T列
     const revenue = amazonSalesSheet.getRange(sourceRow, 33).getValue() || 0; // AG列
     
-    // 日付をYYYY/MM/DD形式に変換
-    let formattedDate = "";
-    if (saleDate instanceof Date) {
-      formattedDate = Utilities.formatDate(saleDate, "Asia/Tokyo", "yyyy/MM/dd");
-    } else if (saleDate) {
-      formattedDate = String(saleDate);
-    }
+    // 日付をDateオブジェクトに変換
+    const formattedDate = parseDateOnly(saleDate);
     
     // 販売価格（S列＋T列）を行数で分割
     const totalSalePrice = Number(sPrice) + Number(tPrice);
@@ -135,7 +162,9 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
       try {
         // 商品管理シートに転記
         if (formattedDate) {
-          productSheet.getRange(row, 28).setValue(formattedDate); // AB列（売上日）
+          const cell = productSheet.getRange(row, 28);
+          cell.setValue(formattedDate);
+          cell.setNumberFormat("yyyy/mm/dd"); // 日付形式を設定
         }
         
         if (totalSalePrice !== 0) {
@@ -176,7 +205,7 @@ function transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow)
   }
 }
 
-function processRefundData(amazonSalesSheet, productSheet, sourceRow, targetRow) {
+function processRefundDataAmazon(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
@@ -344,13 +373,8 @@ function processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, target
     const tPrice = rowData[19] || 0; // T列（商品の売上税）
     const revenue = rowData[32] || 0; // AG列（合計（振込金額））
     
-    // 日付をYYYY/MM/DD形式に変換
-    let formattedDate = "";
-    if (saleDate instanceof Date) {
-      formattedDate = Utilities.formatDate(saleDate, "Asia/Tokyo", "yyyy/MM/dd");
-    } else if (saleDate) {
-      formattedDate = String(saleDate);
-    }
+    // 日付をDateオブジェクトに変換
+    const formattedDate = parseDateOnly(saleDate);
     
     // L列の数値分だけ処理を繰り返す
     let totalSuccessCount = 0;
@@ -361,7 +385,9 @@ function processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, target
       try {
         // 商品管理シートに転記（AC列は除く）
         if (formattedDate) {
-          productSheet.getRange(row, 28).setValue(formattedDate); // AB列（売上日）
+          const cell = productSheet.getRange(row, 28);
+          cell.setValue(formattedDate);
+          cell.setNumberFormat("yyyy/mm/dd"); // 日付形式を設定
         }
         
         if (revenue !== 0) {

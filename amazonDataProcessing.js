@@ -74,7 +74,7 @@ function processAmazonRows(amazonData, productData, startIndex, usedProductRows)
       continue;
     }
     
-    const result = processDataRow(amazonData[i], productData, row, usedProductRows, amazonData);
+    const result = processDataRowAmazon(amazonData[i], productData, row, usedProductRows, amazonData);
     if (!result) {
       continue;
     }
@@ -93,7 +93,7 @@ function processAmazonRows(amazonData, productData, startIndex, usedProductRows)
   return { updates, processedCount };
 }
 
-function processDataRow(rowData, productData, row, usedProductRows, amazonData) {
+function processDataRowAmazon(rowData, productData, row, usedProductRows, amazonData) {
   try {
     const transactionType = rowData[7]; // H列（0ベースなので7）
     const productName = rowData[10]; // K列

@@ -263,31 +263,18 @@ function createFbaInboundPlan_(skuCounts) {
   // SKU一覧を取得
   const mskus = Object.keys(skuCounts);
   
-  // 1. まずlistPrepDetailsで現在の設定を確認
-  console.log("ステップ3-1: listPrepDetailsで梱包カテゴリーを確認中...");
-  const prepDetails = listPrepDetails_(endpoint, accessToken, marketplaceId, mskus);
+  // 1. 全SKUの梱包カテゴリーをNONEで設定
+  console.log("ステップ3-1: 全SKUの梱包カテゴリーをNONEで設定中...");
+  setPrepDetails_(endpoint, accessToken, marketplaceId, mskus);
+  console.log("梱包カテゴリーの設定が完了しました");
   
-  // 2. 未設定（UNKNOWNまたはnull）のSKUを抽出
-  const skusNeedingPrep = [];
-  for (const detail of prepDetails) {
-    if (!detail.prepCategory || detail.prepCategory === "UNKNOWN") {
-      skusNeedingPrep.push(detail.msku);
-      console.log(`SKU "${detail.msku}" の梱包カテゴリーが未設定です`);
-    } else {
-      console.log(`SKU "${detail.msku}" の梱包カテゴリー: ${detail.prepCategory}`);
-    }
-  }
+  // 2. 反映を待つ（3秒）
+  const waitSeconds = 3;
+  console.log(`ステップ3-2: 設定反映を待機中（${waitSeconds}秒）...`);
+  Utilities.sleep(waitSeconds * 1000);
+  console.log("待機完了");
   
-  // 3. 未設定のSKUがあればsetPrepDetailsで設定
-  if (skusNeedingPrep.length > 0) {
-    console.log(`ステップ3-2: ${skusNeedingPrep.length}件のSKUに梱包カテゴリーを設定中...`);
-    setPrepDetails_(endpoint, accessToken, marketplaceId, skusNeedingPrep);
-    console.log("梱包カテゴリーの設定が完了しました");
-  } else {
-    console.log("全てのSKUに梱包カテゴリーが設定済みです");
-  }
-  
-  // 4. 納品プラン作成に進む
+  // 3. 納品プラン作成に進む
   console.log("ステップ3-3: 納品プラン作成中...");
   
   // リクエストボディを構築
@@ -367,52 +354,8 @@ function createFbaInboundPlan_(skuCounts) {
 }
 
 // ===========================================
-// 結果表示処理
+// 梱包カテゴリー設定処理
 // ===========================================
-
-/**
- * listPrepDetails APIを呼び出して、SKUの梱包カテゴリー設定状況を取得する
- * @param {string} endpoint - SP-APIエンドポイント
- * @param {string} accessToken - アクセストークン
- * @param {string} marketplaceId - マーケットプレイスID
- * @param {Array} mskus - SKUの配列
- * @returns {Array} 各SKUの梱包詳細情報
- */
-function listPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
-  // クエリパラメータを構築（GASではURLSearchParamsが使えないため手動で構築）
-  const params = ["marketplaceId=" + encodeURIComponent(marketplaceId)];
-  mskus.forEach(msku => params.push("mskus=" + encodeURIComponent(msku)));
-  
-  const apiPath = "/inbound/fba/2024-03-20/items/prepDetails?" + params.join("&");
-  const url = endpoint + apiPath;
-  
-  const options = {
-    method: "get",
-    headers: {
-      "x-amz-access-token": accessToken,
-      "Accept": "application/json"
-    },
-    muteHttpExceptions: true
-  };
-  
-  console.log("listPrepDetails URL:", url);
-  
-  const response = UrlFetchApp.fetch(url, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-  
-  console.log("listPrepDetails レスポンスコード:", responseCode);
-  console.log("listPrepDetails レスポンスボディ:", responseBody);
-  
-  if (responseCode !== 200) {
-    console.warn("listPrepDetails APIエラー。全SKUを未設定として扱います。");
-    // エラーの場合は全SKUを未設定として返す
-    return mskus.map(msku => ({ msku: msku, prepCategory: null }));
-  }
-  
-  const result = JSON.parse(responseBody);
-  return result.mskuPrepDetails || [];
-}
 
 /**
  * setPrepDetails APIを呼び出して、SKUの梱包カテゴリーを設定する

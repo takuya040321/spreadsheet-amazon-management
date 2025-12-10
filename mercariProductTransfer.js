@@ -34,7 +34,7 @@ function transferMercariToProductSheet() {
     }
     
     // 空白行から処理開始
-    transferredCount = processTransferRows(mercariData, mercariSalesSheet, productSheet, startIndex);
+    transferredCount = processTransferRowsMercari(mercariData, mercariSalesSheet, productSheet, startIndex);
     
     console.log(`${transferredCount}行のデータを商品管理シートに転記しました。`);
     return `${transferredCount}行のデータを商品管理シートに転記しました。`;
@@ -45,7 +45,7 @@ function transferMercariToProductSheet() {
   }
 }
 
-function processTransferRows(mercariData, mercariSalesSheet, productSheet, startIndex) {
+function processTransferRowsMercari(mercariData, mercariSalesSheet, productSheet, startIndex) {
   let transferredCount = 0;
   
   for (let i = startIndex; i < mercariData.length; i++) {

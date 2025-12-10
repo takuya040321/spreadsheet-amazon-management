@@ -233,7 +233,7 @@ function processNormalDataRow(rowData, productData, row, usedProductRows) {
   }
 }
 
-function processDataRow(rowData, productData, row, usedProductRows, mercariData, excludedRows) {
+function processDataRowMercari(rowData, productData, row, usedProductRows, mercariData, excludedRows) {
   try {
     const fValue = rowData[5]; // F列の値（0ベースなので5）
     const gValue = rowData[6]; // G列の値（0ベースなので6）
