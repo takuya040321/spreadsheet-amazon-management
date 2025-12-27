@@ -8,7 +8,7 @@
  * @param {Date|string} dateValue - 変換する日付
  * @returns {Date|null} 日付のみのDateオブジェクト、変換失敗時はnull
  */
-function parseDateOnly(dateValue) {
+function amazon_amazon_parseDateOnly(dateValue) {
   if (!dateValue) return null;
   
   let targetDate;
@@ -35,7 +35,7 @@ function parseDateOnly(dateValue) {
   return new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 }
 
-function transferAmazonToProductSheet() {
+function amazon_transferToProductSheet() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const amazonSalesSheet = spreadsheet.getSheetByName("Amazon売上");
@@ -66,7 +66,7 @@ function transferAmazonToProductSheet() {
     }
     
     // 空白行から処理開始
-    transferredCount = processTransferRowsAmazon(amazonData, amazonSalesSheet, productSheet, startIndex);
+    transferredCount = amazon_processTransferRows(amazonData, amazonSalesSheet, productSheet, startIndex);
     
     console.log(`${transferredCount}行のデータを商品管理シートに転記しました。`);
     return `${transferredCount}行のデータを商品管理シートに転記しました。`;
@@ -77,7 +77,7 @@ function transferAmazonToProductSheet() {
   }
 }
 
-function processTransferRowsAmazon(amazonData, amazonSalesSheet, productSheet, startIndex) {
+function amazon_processTransferRows(amazonData, amazonSalesSheet, productSheet, startIndex) {
   let transferredCount = 0;
   
   for (let i = startIndex; i < amazonData.length; i++) {
@@ -96,22 +96,22 @@ function processTransferRowsAmazon(amazonData, amazonSalesSheet, productSheet, s
     switch (transactionType) {
       case "注文":
         // 注文の処理
-        success = transferSalesDataAmazon(amazonSalesSheet, productSheet, row, targetRow);
+        success = amazon_transferSalesData(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       case "返金":
         // 返金の処理
-        success = processRefundDataAmazon(amazonSalesSheet, productSheet, row, targetRow);
+        success = amazon_processRefundData(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       case "配送サービス":
         // 配送サービスの処理
-        success = processShippingService(amazonSalesSheet, productSheet, row, targetRow);
+        success = amazon_processShippingService(amazonSalesSheet, productSheet, row, targetRow);
         break;
         
       case "調整":
         // 調整の処理
-        success = processAdjustmentData(amazonSalesSheet, productSheet, row, targetRow, amazonData[i]);
+        success = amazon_processAdjustmentData(amazonSalesSheet, productSheet, row, targetRow, amazonData[i]);
         break;
         
       default:
@@ -129,7 +129,7 @@ function processTransferRowsAmazon(amazonData, amazonSalesSheet, productSheet, s
   return transferredCount;
 }
 
-function transferSalesDataAmazon(amazonSalesSheet, productSheet, sourceRow, targetRow) {
+function amazon_transferSalesData(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
@@ -146,7 +146,7 @@ function transferSalesDataAmazon(amazonSalesSheet, productSheet, sourceRow, targ
     const revenue = amazonSalesSheet.getRange(sourceRow, 33).getValue() || 0; // AG列
     
     // 日付をDateオブジェクトに変換
-    const formattedDate = parseDateOnly(saleDate);
+    const formattedDate = amazon_parseDateOnly(saleDate);
     
     // 販売価格（S列＋T列）を行数で分割
     const totalSalePrice = Number(sPrice) + Number(tPrice);
@@ -205,7 +205,7 @@ function transferSalesDataAmazon(amazonSalesSheet, productSheet, sourceRow, targ
   }
 }
 
-function processRefundDataAmazon(amazonSalesSheet, productSheet, sourceRow, targetRow) {
+function amazon_processRefundData(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
@@ -267,7 +267,7 @@ function processRefundDataAmazon(amazonSalesSheet, productSheet, sourceRow, targ
   }
 }
 
-function processShippingService(amazonSalesSheet, productSheet, sourceRow, targetRow) {
+function amazon_amazon_processShippingService(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
@@ -353,7 +353,7 @@ function processShippingService(amazonSalesSheet, productSheet, sourceRow, targe
   }
 }
 
-function processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, targetRow, rowData) {
+function amazon_amazon_processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, targetRow, rowData) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
@@ -374,7 +374,7 @@ function processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, target
     const revenue = rowData[32] || 0; // AG列（合計（振込金額））
     
     // 日付をDateオブジェクトに変換
-    const formattedDate = parseDateOnly(saleDate);
+    const formattedDate = amazon_parseDateOnly(saleDate);
     
     // L列の数値分だけ処理を繰り返す
     let totalSuccessCount = 0;

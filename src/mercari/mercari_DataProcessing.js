@@ -3,7 +3,7 @@
  * 転記先行検索・データ処理機能を実装
  */
 
-function processMercariData() {
+function mercari_processData() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
@@ -43,14 +43,14 @@ function processMercariData() {
     }
     
     // 空白行から処理開始
-    const result = processMercariRows(mercariData, productData, startIndex, usedProductRows);
+    const result = mercari_processRows(mercariData, productData, startIndex, usedProductRows);
     const updates = result.updates;
     const processedCount = result.processedCount;
     const rowsToDelete = result.rowsToDelete;
     
     // 結果を一括書き込み
     if (updates.length > 0) {
-      batchUpdateMercariSheet(mercariSalesSheet, updates);
+      mercari_batchUpdateSheet(mercariSalesSheet, updates);
     }
     
     // 一括書き込み完了後に削除処理を実行
@@ -60,7 +60,7 @@ function processMercariData() {
       console.log(`削除対象行（後ろから順番）: ${sortedRowsToDelete.join(", ")}`);
       
       for (const rowNum of sortedRowsToDelete) {
-        deleteRow(rowNum);
+        mercari_deleteRow(rowNum);
         console.log(`最終フェーズ - 行 ${rowNum} を削除しました`);
       }
       
@@ -78,7 +78,7 @@ function processMercariData() {
   }
 }
 
-function processMercariRows(mercariData, productData, startIndex, usedProductRows) {
+function mercari_processRows(mercariData, productData, startIndex, usedProductRows) {
   const updates = [];
   const excludedRows = new Set(); // キャンセルで除外された行を追跡
   const rowsToDelete = new Set(); // 最後に削除する行番号を蓄積
@@ -107,7 +107,7 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
       // G列の値で同じメルカリ売上シートのG列を検索し、該当行を削除対象に追加
       if (gValue && gValue !== "" && gValue !== null) {
         console.log(`G列の値 "${gValue}" で関連行を削除対象に追加`);
-        collectRowsToDelete(mercariData, gValue, row, excludedRows, rowsToDelete);
+        mercari_collectRowsToDelete(mercariData, gValue, row, excludedRows, rowsToDelete);
       }
       
       // キャンセル行自体も削除対象に追加
@@ -136,7 +136,7 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
       continue;
     }
     
-    const result = processNormalDataRow(mercariData[i], productData, row, usedProductRows);
+    const result = mercari_processNormalDataRow(mercariData[i], productData, row, usedProductRows);
     if (!result) {
       continue;
     }
@@ -158,7 +158,7 @@ function processMercariRows(mercariData, productData, startIndex, usedProductRow
   return { updates, processedCount, rowsToDelete };
 }
 
-function processNormalDataRow(rowData, productData, row, usedProductRows) {
+function mercari_mercari_processNormalDataRow(rowData, productData, row, usedProductRows) {
   try {
     const fValue = rowData[5]; // F列の値（0ベースなので5）
     const oValue = rowData[14]; // O列の値（0ベースなので14）
@@ -197,7 +197,7 @@ function processNormalDataRow(rowData, productData, row, usedProductRows) {
     const foundRows = [];
     for (let i = 0; i < quantity; i++) {
       console.log(`通常処理 - 行 ${row}: ${i + 1}個目の検索を実行中...`);
-      const foundRow = searchProductByYColumn(productData, fValue, usedProductRows);
+      const foundRow = mercari_searchProductByYColumn(productData, fValue, usedProductRows);
       if (!foundRow) {
         console.log(`通常処理 - 行 ${row}: F列の値 "${fValue}" の${i + 1}個目が商品管理シートのY列で見つかりませんでした`);
         break; // 見つからない場合は処理を中断
@@ -233,7 +233,7 @@ function processNormalDataRow(rowData, productData, row, usedProductRows) {
   }
 }
 
-function processDataRowMercari(rowData, productData, row, usedProductRows, mercariData, excludedRows) {
+function mercari_processDataRow(rowData, productData, row, usedProductRows, mercariData, excludedRows) {
   try {
     const fValue = rowData[5]; // F列の値（0ベースなので5）
     const gValue = rowData[6]; // G列の値（0ベースなので6）
@@ -297,7 +297,7 @@ function processDataRowMercari(rowData, productData, row, usedProductRows, merca
     const foundRows = [];
     for (let i = 0; i < quantity; i++) {
       console.log(`行 ${row}: ${i + 1}個目の検索を実行中...`);
-      const foundRow = searchProductByYColumn(productData, fValue, usedProductRows);
+      const foundRow = mercari_searchProductByYColumn(productData, fValue, usedProductRows);
       if (!foundRow) {
         console.log(`行 ${row}: F列の値 "${fValue}" の${i + 1}個目が商品管理シートのY列で見つかりませんでした`);
         break; // 見つからない場合は処理を中断
@@ -333,7 +333,7 @@ function processDataRowMercari(rowData, productData, row, usedProductRows, merca
   }
 }
 
-function batchUpdateMercariSheet(mercariSalesSheet, updates) {
+function mercari_batchUpdateSheet(mercariSalesSheet, updates) {
   // A列、B列、C列、D列の更新を一括で実行
   const aUpdates = [];
   const bUpdates = [];
@@ -381,7 +381,7 @@ function batchUpdateMercariSheet(mercariSalesSheet, updates) {
   }
 }
 
-function collectRowsToDelete(mercariData, gValue, currentRow, excludedRows, rowsToDelete) {
+function mercari_mercari_collectRowsToDelete(mercariData, gValue, currentRow, excludedRows, rowsToDelete) {
   console.log(`★G列検索開始（削除対象収集）★ 検索値:"${gValue}" 現在行:${currentRow}`);
   let hitCount = 0;
   
@@ -413,7 +413,7 @@ function collectRowsToDelete(mercariData, gValue, currentRow, excludedRows, rows
   console.log(`★G列検索完了（削除対象収集）★ 検索値:"${gValue}" で ${hitCount} 件を削除対象に追加`);
 }
 
-function deleteRow(rowNumber) {
+function mercari_mercari_deleteRow(rowNumber) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
   
@@ -423,14 +423,14 @@ function deleteRow(rowNumber) {
   }
   
   try {
-    mercariSalesSheet.deleteRow(rowNumber);
+    mercariSalesSheet.mercari_deleteRow(rowNumber);
     console.log(`行 ${rowNumber} を削除しました`);
   } catch (error) {
     console.error(`行 ${rowNumber} の削除に失敗しました:`, error);
   }
 }
 
-function searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
+function mercari_mercari_searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const yColumnValue = productData[i][24]; // Y列（0始まりなので24）

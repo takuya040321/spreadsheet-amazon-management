@@ -47,8 +47,8 @@ const CSV_HEADERS = [
 /**
  * 月選択ダイアログを表示する
  */
-function showMonthSelectionDialog() {
-  const html = HtmlService.createHtmlOutput(getDialogHtml())
+function amazon_showMonthSelectionDialog() {
+  const html = HtmlService.createHtmlOutput(amazon_getDialogHtml())
     .setWidth(350)
     .setHeight(200);
   SpreadsheetApp.getUi().showModalDialog(html, "対象月を選択");
@@ -57,11 +57,11 @@ function showMonthSelectionDialog() {
 /**
  * ダイアログのHTMLを生成する
  */
-function getDialogHtml() {
+function amazon_amazon_getDialogHtml() {
   // デフォルト値として前月を設定
   const now = new Date();
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const defaultValue = Utilities.formatDate(lastMonth, "Asia/Tokyo", "yyyyMM");
+  const defaultValue = Utilities.amazon_formatDate(lastMonth, "Asia/Tokyo", "yyyyMM");
   
   return `
     <!DOCTYPE html>
@@ -178,29 +178,29 @@ function getDialogHtml() {
  * @param {string} targetMonth - 対象月（YYYYMM形式）
  * @returns {string} 完了メッセージ
  */
-function generateReport(targetMonth) {
+function amazon_generateReport(targetMonth) {
   console.log(`レポート生成開始: ${targetMonth}`);
   
   // 対象期間を計算
   const year = parseInt(targetMonth.substring(0, 4), 10);
   const month = parseInt(targetMonth.substring(4, 6), 10);
-  const { startDate, endDate } = getDateRange(year, month);
+  const { startDate, endDate } = amazon_getDateRange(year, month);
   
   console.log(`対象期間: ${startDate.toISOString()} 〜 ${endDate.toISOString()}`);
   
   // アクセストークンを取得
-  const accessToken = getAccessToken();
+  const accessToken = amazon_getAccessToken();
   
   // Finances APIからデータを取得
-  const financialEvents = fetchFinancialEvents(accessToken, startDate, endDate);
+  const financialEvents = amazon_fetchFinancialEvents(accessToken, startDate, endDate);
   console.log(`取得したイベント数: ${financialEvents.length}`);
   
   // CSVデータに変換
-  const csvRows = convertToCsvRows(financialEvents);
+  const csvRows = amazon_convertToCsvRows(financialEvents);
   console.log(`CSV行数: ${csvRows.length}`);
   
   // CSVファイルを作成してドライブに保存
-  const fileName = saveToGoogleDrive(csvRows, targetMonth);
+  const fileName = amazon_saveToGoogleDrive(csvRows, targetMonth);
   
   console.log(`レポート生成完了: ${fileName}`);
   return `レポートを作成しました。\n\nファイル名: ${fileName}`;
@@ -212,7 +212,7 @@ function generateReport(targetMonth) {
  * @param {number} month - 月（1-12）
  * @returns {Object} 開始日と終了日
  */
-function getDateRange(year, month) {
+function amazon_amazon_getDateRange(year, month) {
   // JST基準で開始日時を設定（月初 00:00:00 JST）
   const startDate = new Date(Date.UTC(year, month - 1, 1, -9, 0, 0, 0));
   
@@ -230,7 +230,7 @@ function getDateRange(year, month) {
  * LWAアクセストークンを取得する
  * @returns {string} アクセストークン
  */
-function getAccessToken() {
+function amazon_amazon_getAccessToken() {
   const props = PropertiesService.getScriptProperties();
   const clientId = props.getProperty("LWA_CLIENT_ID");
   const clientSecret = props.getProperty("LWA_CLIENT_SECRET");
@@ -279,7 +279,7 @@ function getAccessToken() {
  * @param {Date} endDate - 終了日
  * @returns {Array} ファイナンシャルイベントの配列
  */
-function fetchFinancialEvents(accessToken, startDate, endDate) {
+function amazon_amazon_fetchFinancialEvents(accessToken, startDate, endDate) {
   const props = PropertiesService.getScriptProperties();
   const endpoint = props.getProperty("SP_API_ENDPOINT");
   
@@ -339,10 +339,10 @@ function fetchFinancialEvents(accessToken, startDate, endDate) {
     const financialEvents = payload.FinancialEvents || {};
     
     // 各種イベントを収集
-    collectShipmentEvents(financialEvents.ShipmentEventList, allEvents);
-    collectRefundEvents(financialEvents.RefundEventList, allEvents);
-    collectServiceFeeEvents(financialEvents.ServiceFeeEventList, allEvents);
-    collectAdjustmentEvents(financialEvents.AdjustmentEventList, allEvents);
+    amazon_collectShipmentEvents(financialEvents.ShipmentEventList, allEvents);
+    amazon_collectRefundEvents(financialEvents.RefundEventList, allEvents);
+    amazon_collectServiceFeeEvents(financialEvents.ServiceFeeEventList, allEvents);
+    amazon_collectAdjustmentEvents(financialEvents.AdjustmentEventList, allEvents);
     
     nextToken = payload.NextToken || null;
     
@@ -361,7 +361,7 @@ function fetchFinancialEvents(accessToken, startDate, endDate) {
 /**
  * 出荷イベントを収集する
  */
-function collectShipmentEvents(shipmentEventList, allEvents) {
+function amazon_amazon_collectShipmentEvents(shipmentEventList, allEvents) {
   if (!shipmentEventList) return;
   
   for (const event of shipmentEventList) {
@@ -371,7 +371,7 @@ function collectShipmentEvents(shipmentEventList, allEvents) {
     
     const itemList = event.ShipmentItemList || [];
     for (const item of itemList) {
-      const row = createEventRow(postedDate, "Order", orderId, item, marketplaceName);
+      const row = amazon_createEventRow(postedDate, "Order", orderId, item, marketplaceName);
       allEvents.push(row);
     }
   }
@@ -380,7 +380,7 @@ function collectShipmentEvents(shipmentEventList, allEvents) {
 /**
  * 返金イベントを収集する
  */
-function collectRefundEvents(refundEventList, allEvents) {
+function amazon_amazon_collectRefundEvents(refundEventList, allEvents) {
   if (!refundEventList) return;
   
   for (const event of refundEventList) {
@@ -390,7 +390,7 @@ function collectRefundEvents(refundEventList, allEvents) {
     
     const itemList = event.ShipmentItemAdjustmentList || [];
     for (const item of itemList) {
-      const row = createEventRow(postedDate, "Refund", orderId, item, marketplaceName);
+      const row = amazon_createEventRow(postedDate, "Refund", orderId, item, marketplaceName);
       allEvents.push(row);
     }
   }
@@ -399,7 +399,7 @@ function collectRefundEvents(refundEventList, allEvents) {
 /**
  * サービス料金イベントを収集する
  */
-function collectServiceFeeEvents(serviceFeeEventList, allEvents) {
+function amazon_amazon_collectServiceFeeEvents(serviceFeeEventList, allEvents) {
   if (!serviceFeeEventList) return;
   
   for (const event of serviceFeeEventList) {
@@ -427,11 +427,11 @@ function collectServiceFeeEvents(serviceFeeEventList, allEvents) {
       promotionalRebates: 0,
       promotionalRebatesTax: 0,
       withholdingTax: "",
-      sellingFees: sumFeeList(event.FeeList),
+      sellingFees: amazon_sumFeeList(event.FeeList),
       fbaFees: 0,
       otherTransactionFees: 0,
       other: 0,
-      total: sumFeeList(event.FeeList)
+      total: amazon_sumFeeList(event.FeeList)
     };
     allEvents.push(row);
   }
@@ -440,7 +440,7 @@ function collectServiceFeeEvents(serviceFeeEventList, allEvents) {
 /**
  * 調整イベントを収集する
  */
-function collectAdjustmentEvents(adjustmentEventList, allEvents) {
+function amazon_amazon_collectAdjustmentEvents(adjustmentEventList, allEvents) {
   if (!adjustmentEventList) return;
   
   for (const event of adjustmentEventList) {
@@ -450,7 +450,7 @@ function collectAdjustmentEvents(adjustmentEventList, allEvents) {
     const itemList = event.AdjustmentItemList || [];
     for (const item of itemList) {
       const row = {
-        dateTime: formatDate(postedDate),
+        dateTime: amazon_formatDate(postedDate),
         settlementId: "",
         transactionType: adjustmentType,
         orderId: "",
@@ -476,8 +476,8 @@ function collectAdjustmentEvents(adjustmentEventList, allEvents) {
         sellingFees: 0,
         fbaFees: 0,
         otherTransactionFees: 0,
-        other: getAmountValue(item.TotalAmount),
-        total: getAmountValue(item.TotalAmount)
+        other: amazon_getAmountValue(item.TotalAmount),
+        total: amazon_getAmountValue(item.TotalAmount)
       };
       allEvents.push(row);
     }
@@ -487,15 +487,15 @@ function collectAdjustmentEvents(adjustmentEventList, allEvents) {
 /**
  * イベント行を作成する
  */
-function createEventRow(postedDate, transactionType, orderId, item, marketplaceName) {
+function amazon_amazon_createEventRow(postedDate, transactionType, orderId, item, marketplaceName) {
   const itemChargeList = item.ItemChargeList || [];
   const itemFeeList = item.ItemFeeList || [];
   const promotionList = item.PromotionList || [];
   
   // 各種金額を集計
-  const charges = sumChargesByType(itemChargeList);
-  const fees = sumFeesByType(itemFeeList);
-  const promotions = sumPromotions(promotionList);
+  const charges = amazon_sumChargesByType(itemChargeList);
+  const fees = amazon_sumFeesByType(itemFeeList);
+  const promotions = amazon_sumPromotions(promotionList);
   
   // 合計を計算
   const total = 
@@ -504,10 +504,10 @@ function createEventRow(postedDate, transactionType, orderId, item, marketplaceN
     charges.giftWrap + charges.giftWrapTax +
     fees.commission + fees.fba + fees.other +
     promotions.total +
-    getAmountValue(item.PointsGranted?.PointsMonetaryValue) * -1;
+    amazon_getAmountValue(item.PointsGranted?.PointsMonetaryValue) * -1;
   
   return {
-    dateTime: formatDate(postedDate),
+    dateTime: amazon_formatDate(postedDate),
     settlementId: "",
     transactionType: transactionType,
     orderId: orderId,
@@ -515,7 +515,7 @@ function createEventRow(postedDate, transactionType, orderId, item, marketplaceN
     productName: item.ProductDescription || "",
     quantity: item.QuantityShipped || item.Quantity || "",
     amazonService: marketplaceName,
-    fulfillment: detectFulfillment(itemFeeList),
+    fulfillment: amazon_detectFulfillment(itemFeeList),
     city: "",
     state: "",
     postalCode: "",
@@ -526,7 +526,7 @@ function createEventRow(postedDate, transactionType, orderId, item, marketplaceN
     shippingCreditsTax: charges.shippingTax,
     giftWrapCredits: charges.giftWrap,
     giftWrapCreditsTax: charges.giftWrapTax,
-    pointsFee: getAmountValue(item.PointsGranted?.PointsMonetaryValue) * -1,
+    pointsFee: amazon_getAmountValue(item.PointsGranted?.PointsMonetaryValue) * -1,
     promotionalRebates: promotions.total,
     promotionalRebatesTax: 0,
     withholdingTax: "",
@@ -541,7 +541,7 @@ function createEventRow(postedDate, transactionType, orderId, item, marketplaceN
 /**
  * 請求タイプ別に金額を集計する
  */
-function sumChargesByType(chargeList) {
+function amazon_amazon_sumChargesByType(chargeList) {
   const result = {
     principal: 0,
     principalTax: 0,
@@ -553,7 +553,7 @@ function sumChargesByType(chargeList) {
   
   for (const charge of chargeList) {
     const chargeType = charge.ChargeType || "";
-    const amount = getAmountValue(charge.ChargeAmount);
+    const amount = amazon_getAmountValue(charge.ChargeAmount);
     
     switch (chargeType) {
       case "Principal":
@@ -583,7 +583,7 @@ function sumChargesByType(chargeList) {
 /**
  * 手数料タイプ別に金額を集計する
  */
-function sumFeesByType(feeList) {
+function amazon_amazon_sumFeesByType(feeList) {
   const result = {
     commission: 0,
     fba: 0,
@@ -604,7 +604,7 @@ function sumFeesByType(feeList) {
   
   for (const fee of feeList) {
     const feeType = fee.FeeType || "";
-    const amount = getAmountValue(fee.FeeAmount);
+    const amount = amazon_getAmountValue(fee.FeeAmount);
     
     if (commissionTypes.includes(feeType)) {
       result.commission += amount;
@@ -621,11 +621,11 @@ function sumFeesByType(feeList) {
 /**
  * プロモーション金額を集計する
  */
-function sumPromotions(promotionList) {
+function amazon_amazon_sumPromotions(promotionList) {
   let total = 0;
   
   for (const promo of promotionList) {
-    total += getAmountValue(promo.PromotionAmount);
+    total += amazon_getAmountValue(promo.PromotionAmount);
   }
   
   return { total };
@@ -634,12 +634,12 @@ function sumPromotions(promotionList) {
 /**
  * 手数料リストの合計を計算する
  */
-function sumFeeList(feeList) {
+function amazon_amazon_sumFeeList(feeList) {
   if (!feeList) return 0;
   
   let total = 0;
   for (const fee of feeList) {
-    total += getAmountValue(fee.FeeAmount);
+    total += amazon_getAmountValue(fee.FeeAmount);
   }
   return total;
 }
@@ -647,7 +647,7 @@ function sumFeeList(feeList) {
 /**
  * 金額オブジェクトから数値を取得する
  */
-function getAmountValue(amountObj) {
+function amazon_amazon_getAmountValue(amountObj) {
   if (!amountObj) return 0;
   return parseFloat(amountObj.CurrencyAmount) || 0;
 }
@@ -655,7 +655,7 @@ function getAmountValue(amountObj) {
 /**
  * FBA/MFNを判定する
  */
-function detectFulfillment(feeList) {
+function amazon_amazon_detectFulfillment(feeList) {
   if (!feeList) return "";
   
   for (const fee of feeList) {
@@ -670,12 +670,12 @@ function detectFulfillment(feeList) {
 /**
  * 日付をフォーマットする
  */
-function formatDate(isoDateString) {
+function amazon_amazon_formatDate(isoDateString) {
   if (!isoDateString) return "";
   
   try {
     const date = new Date(isoDateString);
-    return Utilities.formatDate(date, "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+    return Utilities.amazon_formatDate(date, "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
   } catch (e) {
     return isoDateString;
   }
@@ -688,7 +688,7 @@ function formatDate(isoDateString) {
 /**
  * イベントデータをCSV行に変換する
  */
-function convertToCsvRows(events) {
+function amazon_amazon_convertToCsvRows(events) {
   const rows = [];
   
   // ヘッダー行
@@ -710,21 +710,21 @@ function convertToCsvRows(events) {
       event.state,
       event.postalCode,
       event.taxCollectionModel,
-      formatNumber(event.productSales),
-      formatNumber(event.productSalesTax),
-      formatNumber(event.shippingCredits),
-      formatNumber(event.shippingCreditsTax),
-      formatNumber(event.giftWrapCredits),
-      formatNumber(event.giftWrapCreditsTax),
-      formatNumber(event.pointsFee),
-      formatNumber(event.promotionalRebates),
-      formatNumber(event.promotionalRebatesTax),
+      amazon_formatNumber(event.productSales),
+      amazon_formatNumber(event.productSalesTax),
+      amazon_formatNumber(event.shippingCredits),
+      amazon_formatNumber(event.shippingCreditsTax),
+      amazon_formatNumber(event.giftWrapCredits),
+      amazon_formatNumber(event.giftWrapCreditsTax),
+      amazon_formatNumber(event.pointsFee),
+      amazon_formatNumber(event.promotionalRebates),
+      amazon_formatNumber(event.promotionalRebatesTax),
       event.withholdingTax,
-      formatNumber(event.sellingFees),
-      formatNumber(event.fbaFees),
-      formatNumber(event.otherTransactionFees),
-      formatNumber(event.other),
-      formatNumber(event.total)
+      amazon_formatNumber(event.sellingFees),
+      amazon_formatNumber(event.fbaFees),
+      amazon_formatNumber(event.otherTransactionFees),
+      amazon_formatNumber(event.other),
+      amazon_formatNumber(event.total)
     ];
     rows.push(row);
   }
@@ -735,7 +735,7 @@ function convertToCsvRows(events) {
 /**
  * 数値をフォーマットする
  */
-function formatNumber(value) {
+function amazon_amazon_formatNumber(value) {
   if (value === 0 || value === null || value === undefined) {
     return "0";
   }
@@ -745,7 +745,7 @@ function formatNumber(value) {
 /**
  * CSVファイルをGoogleドライブに保存する
  */
-function saveToGoogleDrive(csvRows, targetMonth) {
+function amazon_amazon_saveToGoogleDrive(csvRows, targetMonth) {
   const props = PropertiesService.getScriptProperties();
   const folderId = props.getProperty("DRIVE_FOLDER_ID");
   
@@ -757,11 +757,11 @@ function saveToGoogleDrive(csvRows, targetMonth) {
   
   // ファイル名を決定（重複時は連番付与）
   const baseFileName = `販売詳細レポート_${targetMonth}`;
-  const fileName = getUniqueFileName(folder, baseFileName, "csv");
+  const fileName = amazon_getUniqueFileName(folder, baseFileName, "csv");
   
   // CSV文字列を生成（BOM付きUTF-8）
   const csvContent = csvRows.map(row => 
-    row.map(cell => escapeCsvCell(cell)).join(",")
+    row.map(cell => amazon_escapeCsvCell(cell)).join(",")
   ).join("\r\n");
   
   const bom = "\uFEFF";
@@ -776,7 +776,7 @@ function saveToGoogleDrive(csvRows, targetMonth) {
 /**
  * 重複しないファイル名を取得する
  */
-function getUniqueFileName(folder, baseName, extension) {
+function amazon_amazon_getUniqueFileName(folder, baseName, extension) {
   let fileName = `${baseName}.${extension}`;
   let counter = 1;
   
@@ -791,7 +791,7 @@ function getUniqueFileName(folder, baseName, extension) {
 /**
  * CSVセルをエスケープする
  */
-function escapeCsvCell(value) {
+function amazon_amazon_escapeCsvCell(value) {
   if (value === null || value === undefined) {
     return "";
   }

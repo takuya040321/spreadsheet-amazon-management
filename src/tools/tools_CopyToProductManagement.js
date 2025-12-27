@@ -19,7 +19,7 @@ const TARGET_SHEET_NAME = "商品管理";
 /**
  * メイン処理：チェックされた行のデータを商品管理シートにコピー
  */
-function copyCheckedRowsToProductManagement() {
+function tools_copyCheckedRowsToProductManagement() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sourceSheet = ss.getActiveSheet();
   
@@ -72,7 +72,7 @@ function copyCheckedRowsToProductManagement() {
     // チェックボックスがONの場合のみ処理
     if (isChecked === true) {
       // 個数のバリデーション
-      const validQuantity = validateQuantity(quantity, rowNumber);
+      const validQuantity = tools_validateQuantity(quantity, rowNumber);
       
       if (validQuantity === null) {
         skippedRows++;
@@ -118,7 +118,7 @@ function copyCheckedRowsToProductManagement() {
   }
   
   // 商品管理シートの最終行を取得
-  const targetLastRow = getLastRowWithData(targetSheet);
+  const targetLastRow = tools_getLastRowWithData(targetSheet);
   const insertStartRow = targetLastRow + 1;
   
   Logger.log("商品管理シートの最終行: " + targetLastRow);
@@ -167,7 +167,7 @@ function copyCheckedRowsToProductManagement() {
  * @param {number} rowNumber - 行番号（ログ用）
  * @returns {number|null} - 有効な個数、または無効な場合はnull
  */
-function validateQuantity(value, rowNumber) {
+function tools_tools_validateQuantity(value, rowNumber) {
   // 空、null、undefinedチェック
   if (value === "" || value === null || value === undefined) {
     Logger.log("行 " + rowNumber + ": 個数が空のためスキップ");
@@ -207,7 +207,7 @@ function validateQuantity(value, rowNumber) {
  * @param {Sheet} sheet - 対象シート
  * @returns {number} - 最終行番号（データなしの場合は0）
  */
-function getLastRowWithData(sheet) {
+function tools_tools_getLastRowWithData(sheet) {
   const lastRow = sheet.getLastRow();
   
   // シートにデータがない場合
@@ -234,7 +234,7 @@ function getLastRowWithData(sheet) {
  * スプレッドシートにボタンを設置するためのカスタムメニューを追加
  * スプレッドシートを開いた時に自動実行される
  */
-function onOpen() {
+function tools_onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu("商品管理")
     .addItem("チェック行をコピー", "copyCheckedRowsToProductManagement")
@@ -249,7 +249,7 @@ function onOpen() {
 /**
  * 使い方を表示
  */
-function showUsage() {
+function tools_showUsage() {
   const message = 
     "【使い方】\n\n" +
     "1. A列のチェックボックスにチェックを入れる（3行目以降）\n" +
@@ -275,7 +275,7 @@ function showUsage() {
 /**
  * デバッグ用：現在のシート情報を出力
  */
-function debugSheetInfo() {
+function tools_debugSheetInfo() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getActiveSheet();
   

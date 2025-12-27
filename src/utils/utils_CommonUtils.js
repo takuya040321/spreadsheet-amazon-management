@@ -1,4 +1,4 @@
-function parseCSVLine(line) {
+function utils_parseCSVLine(line) {
   const result = [];
   let current = "";
   let inQuotes = false;
@@ -27,7 +27,7 @@ function parseCSVLine(line) {
   return result;
 }
 
-function arraysEqual(a, b) {
+function utils_arraysEqual(a, b) {
   if (a.length !== b.length) return false;
 
   for (let i = 0; i < a.length; i++) {
@@ -39,7 +39,7 @@ function arraysEqual(a, b) {
   return true;
 }
 
-function getSheetOrError(sheetName) {
+function utils_getSheetOrError(sheetName) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getSheetByName(sheetName);
 
@@ -50,7 +50,7 @@ function getSheetOrError(sheetName) {
   return sheet;
 }
 
-function getSheetOrCreate(sheetName) {
+function utils_getSheetOrCreate(sheetName) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = spreadsheet.getSheetByName(sheetName);
 
@@ -61,20 +61,20 @@ function getSheetOrCreate(sheetName) {
   return sheet;
 }
 
-function showAlert(message) {
+function utils_showAlert(message) {
   SpreadsheetApp.getUi().alert(message);
 }
 
-function showError(error) {
+function utils_showError(error) {
   SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
   console.error(error);
 }
 
-function formatDateJST(date, format) {
+function utils_formatDateJST(date, format) {
   return Utilities.formatDate(date, "Asia/Tokyo", format || "yyyy/MM/dd");
 }
 
-function parseDateOnly(dateTimeString) {
+function utils_parseDateOnly(dateTimeString) {
   if (!dateTimeString) {
     return null;
   }
@@ -104,7 +104,7 @@ function parseDateOnly(dateTimeString) {
   return null;
 }
 
-function parseMultipleRows(targetRowValue) {
+function utils_parseMultipleRows(targetRowValue) {
   if (!targetRowValue) {
     return [];
   }
@@ -115,7 +115,7 @@ function parseMultipleRows(targetRowValue) {
     .filter(row => !isNaN(row));
 }
 
-function filterDuplicates(newData, existingData) {
+function utils_filterDuplicates(newData, existingData) {
   if (existingData.length === 0) {
     return newData;
   }
@@ -127,7 +127,7 @@ function filterDuplicates(newData, existingData) {
   });
 }
 
-function getExistingData(sheet, startColumn) {
+function utils_getExistingData(sheet, startColumn) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 1) {
     return [];

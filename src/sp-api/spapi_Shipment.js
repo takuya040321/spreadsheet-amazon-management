@@ -28,13 +28,13 @@
  * メイン処理: FBA納品プランを作成する
  * メニューから呼び出されるエントリーポイント
  */
-function createShipmentPlan() {
+function spapi_createShipmentPlan() {
   console.log("=== FBA納品プラン作成処理を開始 ===");
   
   try {
     // 1. 選択範囲からSKUを取得
     console.log("ステップ1: 選択範囲からSKUを取得中...");
-    const skuCounts = getSelectedSkus_();
+    const skuCounts = spapi_getSelectedSkus_();
     
     if (Object.keys(skuCounts).length === 0) {
       Browser.msgBox("エラー", "選択された行にSKUが見つかりません。\\nY列にSKUが入力されているか確認してください。", Browser.Buttons.OK);
@@ -46,7 +46,7 @@ function createShipmentPlan() {
     
     // 2. SKU確認ダイアログを表示
     console.log("ステップ2: ユーザー確認ダイアログを表示中...");
-    const confirmed = confirmSkus_(skuCounts);
+    const confirmed = spapi_confirmSkus_(skuCounts);
     
     if (!confirmed) {
       console.log("ユーザーがキャンセルしました。処理を中断します。");
@@ -55,11 +55,11 @@ function createShipmentPlan() {
     
     // 3. SP-APIを呼び出して納品プランを作成
     console.log("ステップ3: SP-API呼び出し中...");
-    const result = createFbaInboundPlan_(skuCounts);
+    const result = spapi_createFbaInboundPlan_(skuCounts);
     
     // 4. 結果を表示
     console.log("ステップ4: 結果を表示中...");
-    showResult_(result);
+    spapi_showResult_(result);
     
     console.log("=== FBA納品プラン作成処理が完了しました ===");
     
@@ -77,7 +77,7 @@ function createShipmentPlan() {
  * 選択範囲の各行からY列（25列目）のSKUを取得し、集計する
  * @returns {Object} SKUをキー、個数を値とするオブジェクト
  */
-function getSelectedSkus_() {
+function spapi_getSelectedSkus_() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const activeRange = sheet.getActiveRange();
   
@@ -133,7 +133,7 @@ function getSelectedSkus_() {
  * @param {Object} skuCounts - SKUと個数のマップ
  * @returns {boolean} ユーザーが「はい」を選択した場合true
  */
-function confirmSkus_(skuCounts) {
+function spapi_confirmSkus_(skuCounts) {
   // SKU一覧を文字列で整形
   let message = "以下の内容でFBA納品プランを作成しますか？\\n\\n";
   message += "【SKU一覧】\\n";
@@ -169,7 +169,7 @@ function confirmSkus_(skuCounts) {
  * SP-APIのアクセストークンを取得する
  * @returns {string} アクセストークン
  */
-function getAccessToken_() {
+function spapi_getAccessToken_() {
   console.log("アクセストークンを取得中...");
   
   const props = PropertiesService.getScriptProperties();
@@ -217,7 +217,7 @@ function getAccessToken_() {
  * 出荷元住所をScript Propertiesから取得する
  * @returns {Object} 住所オブジェクト
  */
-function getSourceAddress_() {
+function spapi_getSourceAddress_() {
   const props = PropertiesService.getScriptProperties();
   
   const address = {
@@ -245,7 +245,7 @@ function getSourceAddress_() {
  * @param {Object} skuCounts - SKUと個数のマップ
  * @returns {Object} API レスポンス（inboundPlanId等を含む）
  */
-function createFbaInboundPlan_(skuCounts) {
+function spapi_createFbaInboundPlan_(skuCounts) {
   const props = PropertiesService.getScriptProperties();
   const endpoint = props.getProperty("SP_API_ENDPOINT") || "https://sellingpartnerapi-fe.amazon.com";
   const marketplaceId = props.getProperty("MARKETPLACE_ID");
@@ -255,17 +255,17 @@ function createFbaInboundPlan_(skuCounts) {
   }
   
   // アクセストークンを取得
-  const accessToken = getAccessToken_();
+  const accessToken = spapi_getAccessToken_();
   
   // 出荷元住所を取得
-  const sourceAddress = getSourceAddress_();
+  const sourceAddress = spapi_getSourceAddress_();
   
   // SKU一覧を取得
   const mskus = Object.keys(skuCounts);
   
   // 1. 全SKUの梱包カテゴリーをNONEで設定
   console.log("ステップ3-1: 全SKUの梱包カテゴリーをNONEで設定中...");
-  setPrepDetails_(endpoint, accessToken, marketplaceId, mskus);
+  spapi_setPrepDetails_(endpoint, accessToken, marketplaceId, mskus);
   console.log("梱包カテゴリーの設定が完了しました");
   
   // 2. 反映を待つ（3秒）
@@ -289,7 +289,7 @@ function createFbaInboundPlan_(skuCounts) {
   const planName = Utilities.formatDate(now, "Asia/Tokyo", "yyyyMMdd_HHmmss") + "_GAS作成";
   
   // items配列を作成（各SKUと数量）
-  const items = buildItemsArray_(skuCounts, expiration, {});
+  const items = spapi_buildItemsArray_(skuCounts, expiration, {});
   
   const requestBody = {
     destinationMarketplaces: [marketplaceId],
@@ -327,7 +327,7 @@ function createFbaInboundPlan_(skuCounts) {
   
   // prepOwnerエラーの場合、該当SKUをNONEにしてリトライ
   if (responseCode === 400) {
-    const retryResult = handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, apiPath, accessToken, marketplaceId, sourceAddress, planName);
+    const retryResult = spapi_handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, apiPath, accessToken, marketplaceId, sourceAddress, planName);
     if (retryResult) {
       return retryResult;
     }
@@ -364,7 +364,7 @@ function createFbaInboundPlan_(skuCounts) {
  * @param {string} marketplaceId - マーケットプレイスID
  * @param {Array} mskus - 設定するSKUの配列
  */
-function setPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
+function spapi_setPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
   const apiPath = "/inbound/fba/2024-03-20/items/prepDetails";
   const url = endpoint + apiPath;
   
@@ -415,7 +415,7 @@ function setPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
  * @param {Object} prepOwnerOverrides - prepOwnerを上書きするSKUのマップ（SKU: "NONE"）
  * @returns {Array} items配列
  */
-function buildItemsArray_(skuCounts, expiration, prepOwnerOverrides) {
+function spapi_buildItemsArray_(skuCounts, expiration, prepOwnerOverrides) {
   const items = [];
   for (const [msku, quantity] of Object.entries(skuCounts)) {
     const prepOwner = prepOwnerOverrides[msku] || "SELLER";
@@ -443,7 +443,7 @@ function buildItemsArray_(skuCounts, expiration, prepOwnerOverrides) {
  * @param {string} planName - 納品プラン名
  * @returns {Object|null} 成功時はAPIレスポンス、リトライ不要または失敗時はnull
  */
-function handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, apiPath, accessToken, marketplaceId, sourceAddress, planName) {
+function spapi_handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, apiPath, accessToken, marketplaceId, sourceAddress, planName) {
   try {
     const errorData = JSON.parse(responseBody);
     if (!errorData.errors || errorData.errors.length === 0) {
@@ -474,7 +474,7 @@ function handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, ap
     console.log("prepOwnerをNONEに変更してリトライします:", JSON.stringify(prepOwnerOverrides));
     
     // items配列を再構築
-    const items = buildItemsArray_(skuCounts, expiration, prepOwnerOverrides);
+    const items = spapi_buildItemsArray_(skuCounts, expiration, prepOwnerOverrides);
     
     const requestBody = {
       destinationMarketplaces: [marketplaceId],
@@ -521,7 +521,7 @@ function handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoint, ap
  * 処理結果を表示し、セラーセントラルを開く
  * @param {Object} result - SP-APIのレスポンス
  */
-function showResult_(result) {
+function spapi_showResult_(result) {
   // inboundPlanIdを取得
   const inboundPlanId = result.inboundPlanId;
   const operationId = result.operationId;
@@ -557,14 +557,14 @@ function showResult_(result) {
   // セラーセントラルを新しいタブで開く
   // 注意: GASからブラウザの新しいタブを直接開くことはできないため、
   // HTMLダイアログを使用してリンクを提供する
-  openUrlInNewTab_(sellerCentralUrl);
+  spapi_openUrlInNewTab_(sellerCentralUrl);
 }
 
 /**
  * URLを新しいタブで開くためのHTMLダイアログを表示する
  * @param {string} url - 開くURL
  */
-function openUrlInNewTab_(url) {
+function spapi_openUrlInNewTab_(url) {
   const html = HtmlService.createHtmlOutput(
     '<html><head><base target="_blank"></head><body>' +
     '<p>セラーセントラルを開いています...</p>' +
@@ -589,7 +589,7 @@ function openUrlInNewTab_(url) {
  * Script Propertiesの設定状況を確認する（デバッグ用）
  * メニューから直接実行可能
  */
-function checkScriptProperties() {
+function spapi_checkScriptProperties() {
   const props = PropertiesService.getScriptProperties();
   const keys = [
     "LWA_CLIENT_ID",
@@ -625,10 +625,10 @@ function checkScriptProperties() {
 /**
  * SP-API接続テスト（アクセストークン取得のみ）
  */
-function testSpApiConnection() {
+function spapi_testSpApiConnection() {
   try {
     console.log("=== SP-API接続テスト開始 ===");
-    const accessToken = getAccessToken_();
+    const accessToken = spapi_getAccessToken_();
     console.log("アクセストークン取得成功");
     Browser.msgBox("接続テスト成功", "SP-APIへの接続に成功しました。\\nアクセストークンを正常に取得できました。", Browser.Buttons.OK);
   } catch (error) {

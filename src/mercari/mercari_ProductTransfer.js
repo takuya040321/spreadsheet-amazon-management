@@ -3,7 +3,7 @@
  * メルカリ売上データを商品管理シートに転記する
  */
 
-function transferMercariToProductSheet() {
+function mercari_transferToProductSheet() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
@@ -34,7 +34,7 @@ function transferMercariToProductSheet() {
     }
     
     // 空白行から処理開始
-    transferredCount = processTransferRowsMercari(mercariData, mercariSalesSheet, productSheet, startIndex);
+    transferredCount = mercari_processTransferRows(mercariData, mercariSalesSheet, productSheet, startIndex);
     
     console.log(`${transferredCount}行のデータを商品管理シートに転記しました。`);
     return `${transferredCount}行のデータを商品管理シートに転記しました。`;
@@ -45,7 +45,7 @@ function transferMercariToProductSheet() {
   }
 }
 
-function processTransferRowsMercari(mercariData, mercariSalesSheet, productSheet, startIndex) {
+function mercari_processTransferRows(mercariData, mercariSalesSheet, productSheet, startIndex) {
   let transferredCount = 0;
   
   for (let i = startIndex; i < mercariData.length; i++) {

@@ -7,8 +7,6 @@ FBA（Fulfillment by Amazon）納品プラン作成およびラベル生成機�
 | ファイル名 | 役割 |
 |-----------|------|
 | Fbashipment.js | FBA納品プラン作成 |
-| FbaLabelGenerator.js | FBAラベル生成 |
-| FbaLabelView.html | FBAラベル表示 |
 
 ---
 
@@ -140,98 +138,6 @@ https://sellercentral.amazon.co.jp/fba/sendtoamazon/confirm_content_step?wf={inb
 
 ---
 
-## FBAラベル生成
-
-### 概要
-
-スプレッドシートの選択行からSKUを取得し、SP-API Inventory APIでFNSKU等の情報を取得して印刷用ラベルを生成する。
-
-### 処理フロー
-
-```mermaid
-flowchart TB
-    Start[開始] --> Select[セル選択]
-    Select --> GetSKU[Y列からSKU取得]
-    GetSKU --> Aggregate[SKU集計]
-    Aggregate --> FetchAPI[SP-APIでSKU情報取得]
-    FetchAPI --> CheckUnreg{未登録SKUあり?}
-    CheckUnreg -->|あり| ErrorUnreg[エラー表示]
-    CheckUnreg -->|なし| Confirm[確認ダイアログ]
-    Confirm -->|キャンセル| End[終了]
-    Confirm -->|はい| CreateLabel[ラベルデータ作成]
-    CreateLabel --> ShowHTML[HTML表示]
-    ShowHTML --> End
-    ErrorUnreg --> End
-```
-
-### メイン関数
-
-**関数**: generateFbaLabelsFromSelection
-
-**処理内容**:
-1. 選択範囲からSKUを取得
-2. SKUを集計（種類と個数）
-3. SP-APIでSKU詳細情報を取得
-4. 未登録SKUをチェック
-5. 確認ダイアログを表示
-6. ラベルデータを作成
-7. HTMLでラベルを表示
-
-### SKU取得
-
-**関数**: getSkusFromSelection
-
-**処理内容**:
-- 選択された行のY列からSKUを取得
-- ヘッダー行（DATA_START_ROW未満）はスキップ
-- 空のセルはスキップ
-
-### SKU詳細情報取得
-
-**関数**: fetchSkuDetailsFromSpApi → fetchInventorySummaries
-
-**API**: GET /fba/inventory/v1/summaries
-
-**パラメータ**:
-- details: true
-- marketplaceIds: マーケットプレイスID
-- sellerSkus: SKU一覧（最大50件）
-
-**取得情報**:
-
-| 項目 | 説明 |
-|-----|------|
-| fnSku | FNSKU |
-| productName | 商品名 |
-| asin | ASIN |
-
-### 未登録SKUチェック
-
-**関数**: checkUnregisteredSkus
-
-**処理内容**:
-- リクエストしたSKUのうち、レスポンスに含まれないものを検出
-- 未登録SKUがある場合はエラー表示して処理中断
-
-### ラベルデータ作成
-
-**関数**: createLabelData
-
-**処理内容**:
-- 各SKUの個数分だけラベルデータを生成
-- ラベルデータには fnsku、productName、asin を含む
-
-### ラベル表示
-
-**関数**: showLabelHtml
-
-**処理内容**:
-- FbaLabelView.htmlテンプレートを使用
-- ラベルデータをJSONでテンプレートに渡す
-- モーダルダイアログで表示
-- 印刷用のHTML形式
-
----
 
 ## 使用API一覧
 

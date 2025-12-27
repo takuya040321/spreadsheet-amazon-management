@@ -3,7 +3,7 @@
  * 転記先行検索・データ処理機能を実装
  */
 
-function processAmazonData() {
+function amazon_processData() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const amazonSalesSheet = spreadsheet.getSheetByName("Amazon売上");
@@ -43,13 +43,13 @@ function processAmazonData() {
     }
     
     // 空白行から処理開始
-    const result = processAmazonRows(amazonData, productData, startIndex, usedProductRows);
+    const result = amazon_processRows(amazonData, productData, startIndex, usedProductRows);
     const updates = result.updates;
     const processedCount = result.processedCount;
     
     // 結果を一括書き込み
     if (updates.length > 0) {
-      batchUpdateAmazonSheet(amazonSalesSheet, updates);
+      amazon_batchUpdateSheet(amazonSalesSheet, updates);
     }
     
     console.log(`${processedCount}行のデータを処理しました。`);
@@ -61,7 +61,7 @@ function processAmazonData() {
   }
 }
 
-function processAmazonRows(amazonData, productData, startIndex, usedProductRows) {
+function amazon_processRows(amazonData, productData, startIndex, usedProductRows) {
   const updates = [];
   let processedCount = 0;
   
@@ -74,7 +74,7 @@ function processAmazonRows(amazonData, productData, startIndex, usedProductRows)
       continue;
     }
     
-    const result = processDataRowAmazon(amazonData[i], productData, row, usedProductRows, amazonData);
+    const result = amazon_processDataRow(amazonData[i], productData, row, usedProductRows, amazonData);
     if (!result) {
       continue;
     }
@@ -93,7 +93,7 @@ function processAmazonRows(amazonData, productData, startIndex, usedProductRows)
   return { updates, processedCount };
 }
 
-function processDataRowAmazon(rowData, productData, row, usedProductRows, amazonData) {
+function amazon_processDataRow(rowData, productData, row, usedProductRows, amazonData) {
   try {
     const transactionType = rowData[7]; // H列（0ベースなので7）
     const productName = rowData[10]; // K列
@@ -119,18 +119,18 @@ function processDataRowAmazon(rowData, productData, row, usedProductRows, amazon
         
       case "配送サービス":
         const orderNumberFromI = rowData[8]; // I列の注文番号（0ベースなので8）
-        return processDeliveryService(row, orderNumberFromI, today, amazonData);
+        return amazon_processDeliveryService(row, orderNumberFromI, today, amazonData);
         
       case "調整":
-        return processAdjustment(productData, row, productName, sku, today, usedProductRows);
+        return amazon_processAdjustment(productData, row, productName, sku, today, usedProductRows);
         
       case "返金":
         const refundOrderNumber = rowData[8]; // I列の注文番号（0ベースなので8）
-        return processRefund(row, refundOrderNumber, today, amazonData);
+        return amazon_processRefund(row, refundOrderNumber, today, amazonData);
         
       case "注文":
         const quantity = parseInt(rowData[11]) || 1; // L列の数量（デフォルト1）
-        return processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity);
+        return amazon_processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity);
         
       default:
         console.log(`不明なトランザクション種類: ${transactionType}`);
@@ -148,7 +148,7 @@ function processDataRowAmazon(rowData, productData, row, usedProductRows, amazon
   }
 }
 
-function processAdjustment(productData, row, productName, sku, today, usedProductRows) {
+function amazon_amazon_processAdjustment(productData, row, productName, sku, today, usedProductRows) {
   // FBA在庫返金の場合は転記対象外
   if (productName && productName.includes("FBA在庫の返金 - 購入者による返品:")) {
     return {
@@ -165,7 +165,7 @@ function processAdjustment(productData, row, productName, sku, today, usedProduc
     return null;
   }
   
-  const foundRow = searchSKUInArray(productData, sku, usedProductRows);
+  const foundRow = amazon_searchSKUInArray(productData, sku, usedProductRows);
   if (!foundRow) {
     console.log(`行 ${row}: SKU ${sku} が見つかりませんでした、スキップします`);
     return null;
@@ -179,14 +179,14 @@ function processAdjustment(productData, row, productName, sku, today, usedProduc
   };
 }
 
-function processRefund(row, orderNumber, today, amazonData) {
+function amazon_amazon_processRefund(row, orderNumber, today, amazonData) {
   if (!orderNumber) {
     console.log(`行 ${row}: I列に注文番号が見つかりませんでした、スキップします`);
     return null;
   }
   
   // Amazon売上シート内でI列の注文番号を検索（自分自身を除く）
-  const foundRow = searchOrderNumberInAmazonData(amazonData, orderNumber, row);
+  const foundRow = amazon_searchOrderNumberInData(amazonData, orderNumber, row);
   if (foundRow) {
     return {
       aValue: "", // 使用しない
@@ -200,7 +200,7 @@ function processRefund(row, orderNumber, today, amazonData) {
   }
 }
 
-function processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity) {
+function amazon_amazon_processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity) {
   if (!sku) {
     console.log(`行 ${row}: SKUが見つかりませんでした、スキップします`);
     return null;
@@ -210,7 +210,7 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
   
   // 数量分だけ繰り返し検索
   for (let i = 0; i < quantity; i++) {
-    const foundRow = searchSKUInArray(productData, sku, usedProductRows);
+    const foundRow = amazon_searchSKUInArray(productData, sku, usedProductRows);
     if (foundRow) {
       foundRows.push(foundRow);
       usedProductRows.add(foundRow); // 即座に使用済みに追加
@@ -234,14 +234,14 @@ function processSKUSearchWithQuantity(productData, row, sku, today, usedProductR
   }
 }
 
-function processDeliveryService(row, orderNumber, today, amazonData) {
+function amazon_amazon_processDeliveryService(row, orderNumber, today, amazonData) {
   if (!orderNumber) {
     console.log(`行 ${row}: I列に注文番号が見つかりませんでした、スキップします`);
     return null;
   }
   
   // Amazon売上シート内でI列の注文番号を検索（自分自身を除く）
-  const foundRow = searchOrderNumberInAmazonData(amazonData, orderNumber, row);
+  const foundRow = amazon_searchOrderNumberInData(amazonData, orderNumber, row);
   if (foundRow) {
     return {
       aValue: "", // 使用しない
@@ -255,12 +255,12 @@ function processDeliveryService(row, orderNumber, today, amazonData) {
   }
 }
 
-function searchSKU(productSheet, sku) {
+function amazon_amazon_searchSKU(productSheet, sku) {
   const lastRow = productSheet.getLastRow();
   
   for (let row = 2; row <= lastRow; row++) {
-    const sheetSku = productSheet.getRange(row, getColumnByHeader(productSheet, "SKU")).getValue();
-    const status = getProductStatus(productSheet, row);
+    const sheetSku = productSheet.getRange(row, amazon_getColumnByHeader(productSheet, "SKU")).getValue();
+    const status = amazon_getProductStatus(productSheet, row);
     
     // 「4.販売/処分済」以外のステータスを検索対象とする
     if (String(sheetSku).trim() === String(sku).trim() && status !== "4.販売/処分済") {
@@ -271,7 +271,7 @@ function searchSKU(productSheet, sku) {
   return null;
 }
 
-function getProductStatus(productSheet, row) {
+function amazon_amazon_getProductStatus(productSheet, row) {
   // IFS関数による動的ステータス計算の実装
   const zCol = productSheet.getRange(row, 26).getValue(); // Z列
   const aaCol = productSheet.getRange(row, 27).getValue(); // AA列
@@ -288,7 +288,7 @@ function getProductStatus(productSheet, row) {
   }
 }
 
-function getColumnByHeader(sheet, headerName) {
+function amazon_amazon_getColumnByHeader(sheet, headerName) {
   const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
   for (let col = 0; col < headerRow.length; col++) {
@@ -300,7 +300,7 @@ function getColumnByHeader(sheet, headerName) {
   throw new Error(`Header "${headerName}" not found`);
 }
 
-function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
+function amazon_batchUpdateSheet(amazonSalesSheet, updates) {
   // A列、B列、C列、D列の更新を一括で実行
   const aUpdates = [];
   const bUpdates = [];
@@ -348,7 +348,7 @@ function batchUpdateAmazonSheet(amazonSalesSheet, updates) {
   }
 }
 
-function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
+function amazon_amazon_searchSKUInArray(productData, sku, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const skuColumnIndex = 24; // Y列（0始まりなので24）
@@ -384,7 +384,7 @@ function searchSKUInArray(productData, sku, usedProductRows = new Set()) {
   return null;
 }
 
-function searchOrderNumberInAmazonData(amazonData, orderNumber, excludeRow = null) {
+function amazon_searchOrderNumberInData(amazonData, orderNumber, excludeRow = null) {
   for (let i = 0; i < amazonData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const sheetOrderNumber = amazonData[i][8]; // I列（0ベースなので8）

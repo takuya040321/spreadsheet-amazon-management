@@ -1,4 +1,4 @@
-function calculateProductStatus(rowData) {
+function utils_calculateProductStatus(rowData) {
   const zCol = rowData[25];  // Z列: 商品受領フラグ
   const aaCol = rowData[26]; // AA列: 販売中フラグ
   const afCol = rowData[31]; // AF列: 売却廃却フラグ
@@ -14,7 +14,7 @@ function calculateProductStatus(rowData) {
   }
 }
 
-function searchProductByYColumn(productData, searchValue, usedProductRows, dataStartRow) {
+function utils_searchProductByYColumn(productData, searchValue, usedProductRows, dataStartRow) {
   usedProductRows = usedProductRows || new Set();
   dataStartRow = dataStartRow || 3;
   const yColumnIndex = 24; // Y列（0始まり）
@@ -41,7 +41,7 @@ function searchProductByYColumn(productData, searchValue, usedProductRows, dataS
   return null;
 }
 
-function searchMultipleProducts(productData, searchValue, quantity, usedProductRows, dataStartRow) {
+function utils_searchMultipleProducts(productData, searchValue, quantity, usedProductRows, dataStartRow) {
   usedProductRows = usedProductRows || new Set();
   dataStartRow = dataStartRow || 3;
   const foundRows = [];
@@ -57,7 +57,7 @@ function searchMultipleProducts(productData, searchValue, quantity, usedProductR
   return foundRows;
 }
 
-function getProductDataFromSheet(productSheet, dataStartRow) {
+function utils_getProductDataFromSheet(productSheet, dataStartRow) {
   dataStartRow = dataStartRow || 3;
   const lastRow = productSheet.getLastRow();
 
@@ -69,7 +69,7 @@ function getProductDataFromSheet(productSheet, dataStartRow) {
   return productSheet.getRange(dataStartRow, 1, dataRowCount, 33).getValues();
 }
 
-function batchUpdateSheetColumn(sheet, updates, columnIndex) {
+function utils_batchUpdateSheetColumn(sheet, updates, columnIndex) {
   if (updates.length === 0) {
     return;
   }
@@ -79,7 +79,7 @@ function batchUpdateSheetColumn(sheet, updates, columnIndex) {
   });
 }
 
-function batchUpdateMultipleColumns(sheet, rowUpdates) {
+function utils_batchUpdateMultipleColumns(sheet, rowUpdates) {
   if (rowUpdates.length === 0) {
     return;
   }
@@ -94,12 +94,12 @@ function batchUpdateMultipleColumns(sheet, rowUpdates) {
   });
 }
 
-function setHyperlink(sheet, row, column, url, displayText) {
+function utils_setHyperlink(sheet, row, column, url, displayText) {
   const formula = '=HYPERLINK("' + url + '","' + displayText + '")';
   sheet.getRange(row, column).setFormula(formula);
 }
 
-function createProductSheetLink(row, sheetName) {
+function utils_createProductSheetLink(row, sheetName) {
   const spreadsheetId = SpreadsheetApp.getActiveSpreadsheet().getId();
   const sheetId = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName).getSheetId();
   return "https://docs.google.com/spreadsheets/d/" + spreadsheetId + "/edit#gid=" + sheetId + "&range=A" + row;

@@ -1,5 +1,5 @@
 /**
- * メルカリ売上シート UI機能とボタンハンドラー
+ * UI機能とボタンハンドラー
  * セル上の画像ボタンから各機能を呼び出すためのインターフェース
  */
 
@@ -10,24 +10,24 @@
 /**
  * ボタン1: CSVファイル読込
  */
-function handleMercariCsvImport() {
+function amazon_handleCsvImport() {
   try {
-    const htmlOutput = HtmlService.createHtmlOutputFromFile("mercariCsvDialog")
+    const htmlOutput = HtmlService.createHtmlOutputFromFile("amazonCsvDialog")
       .setWidth(500)
       .setHeight(400);
-    SpreadsheetApp.getUi().showModalDialog(htmlOutput, "メルカリCSV読み込み");
+    SpreadsheetApp.getUi().showModalDialog(htmlOutput, "CSV読み込み");
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
-    console.error("メルカリCSV読込エラー:", error);
+    console.error("CSV読込エラー:", error);
   }
 }
 
 /**
  * ボタン2: データ処理
  */
-function handleMercariDataProcessing() {
+function amazon_handleDataProcessing() {
   try {
-    const result = processMercariData();
+    const result = processAmazonData();
     SpreadsheetApp.getUi().alert("データ処理が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
@@ -38,9 +38,9 @@ function handleMercariDataProcessing() {
 /**
  * ボタン3: 商品管理転記
  */
-function handleMercariTransfer() {
+function amazon_handleTransfer() {
   try {
-    const result = transferMercariToProductSheet();
+    const result = transferAmazonToProductSheet();
     SpreadsheetApp.getUi().alert("商品管理シートへの転記が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
@@ -52,35 +52,34 @@ function handleMercariTransfer() {
 /**
  * CSVコンテンツ処理（ダイアログから呼び出される）
  */
-function processMercariCsvContent(csvContent) {
+function amazon_processCsvContent(csvContent) {
   try {
-    console.log("ダイアログからメルカリCSVコンテンツを処理中...");
-    const csvData = parseMercariCsvContent(csvContent);
-    console.log("メルカリCSVデータを解析しました:", csvData.length, "行");
-    const result = writeToMercariSalesSheet(csvData);
-    console.log("メルカリシートへのデータ書き込みが完了しました");
-    return { success: true, message: "メルカリCSV読み込みが完了しました。\n" + result };
+    console.log("Processing CSV content from dialog...");
+    const csvData = amazon_parseCsvContent(csvContent);
+    console.log("Parsed CSV data:", csvData.length, "rows");
+    const result = amazon_writeToSalesSheet(csvData);
+    console.log("Data written to sheet successfully");
+    return { success: true, message: "CSV読み込みが完了しました。\n" + result };
   } catch (error) {
-    console.error("CSVコンテンツ処理エラー:", error);
-    throw new Error("メルカリCSVファイルの処理に失敗しました: " + error.message);
+    console.error("processCsvContent error:", error);
+    throw new Error("CSVファイルの処理に失敗しました: " + error.message);
   }
 }
 
-function parseMercariCsvContent(csvContent) {
+function amazon_parseCsvContent(csvContent) {
   const lines = csvContent.split("\n");
   
-  if (lines.length < 2) {
-    throw new Error("CSVファイルの形式が正しくありません（ヘッダー行とデータが必要）。");
+  if (lines.length < 9) {
+    throw new Error("CSVファイルの形式が正しくありません（9行目以降にデータが必要）。");
   }
 
-  // ヘッダー行をスキップしてデータ行から処理開始
-  const dataLines = lines.slice(1);
+  const dataLines = lines.slice(8);
   const parsedData = [];
 
   for (let i = 0; i < dataLines.length; i++) {
     const line = dataLines[i].trim();
     if (line) {
-      const row = parseMercariCSVLine(line);
+      const row = amazon_parseCSVLine(line);
       if (row && row.length > 0) {
         parsedData.push(row);
       }
@@ -90,7 +89,7 @@ function parseMercariCsvContent(csvContent) {
   return parsedData;
 }
 
-function parseMercariCSVLine(line) {
+function amazon_parseCSVLine(line) {
   const result = [];
   let current = "";
   let inQuotes = false;
@@ -119,69 +118,69 @@ function parseMercariCSVLine(line) {
   return result;
 }
 
-function writeToMercariSalesSheet(csvData) {
-  console.log("writeToMercariSalesSheetが呼び出されました。データ行数:", csvData.length);
+function amazon_writeToSalesSheet(csvData) {
+  console.log("writeToAmazonSalesSheet called with", csvData.length, "rows");
   
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = spreadsheet.getSheetByName("メルカリ売上");
+  let sheet = spreadsheet.getSheetByName("Amazon売上");
   
   if (!sheet) {
-    console.log("新しいメルカリ売上シートを作成中");
-    sheet = spreadsheet.insertSheet("メルカリ売上");
+    console.log("Creating new Amazon売上 sheet");
+    sheet = spreadsheet.insertSheet("Amazon売上");
   }
 
   if (csvData.length === 0) {
     throw new Error("読み込むデータがありません。");
   }
 
-  const existingData = getMercariExistingData(sheet);
-  const newData = filterMercariDuplicates(csvData, existingData);
-  console.log("重複フィルタリング後のデータ行数:", newData.length);
+  const existingData = amazon_getExistingData(sheet);
+  const newData = amazon_filterDuplicates(csvData, existingData);
+  console.log("After duplicate filtering:", newData.length, "rows");
 
   if (newData.length === 0) {
-    console.log("追加する新しいデータはありません");
+    console.log("No new data to add");
     return "重複データのため、新しいデータはありませんでした。";
   }
 
   const lastRow = sheet.getLastRow();
-  const startCol = 7; // G列から開始
+  const startCol = 6;
   const startRow = lastRow + 1;
   const numRows = newData.length;
   const numCols = newData[0].length;
   
-  console.log("シートへの書き込み開始位置 - 行:", startRow, "列:", startCol);
-  console.log("書き込み範囲:", numRows, "行 x", numCols, "列");
+  console.log("Writing to sheet starting at row", startRow, "column", startCol);
+  console.log("Range:", numRows, "x", numCols);
   
   const range = sheet.getRange(startRow, startCol, numRows, numCols);
   range.setValues(newData);
 
-  console.log(newData.length + "行のデータをメルカリ売上シートに追加しました。");
+  console.log(`${newData.length}行のデータを「Amazon売上」シートに追加しました。`);
   return `${newData.length}行のデータを追加しました。`;
 }
 
-function getMercariExistingData(sheet) {
+function amazon_getExistingData(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 1) {
     return [];
   }
 
-  const range = sheet.getRange(1, 7, lastRow, sheet.getLastColumn() - 6);
+  const range = sheet.getRange(1, 6, lastRow, sheet.getLastColumn() - 5);
   return range.getValues().filter(row => row.some(cell => cell !== ""));
 }
 
-function filterMercariDuplicates(newData, existingData) {
+function amazon_filterDuplicates(newData, existingData) {
   if (existingData.length === 0) {
     return newData;
   }
 
   return newData.filter(newRow => {
     return !existingData.some(existingRow => {
-      return mercariArraysEqual(newRow, existingRow);
+      return amazon_arraysEqual(newRow, existingRow);
     });
   });
 }
 
-function mercariArraysEqual(a, b) {
+function amazon_arraysEqual(a, b) {
   if (a.length !== b.length) return false;
   
   for (let i = 0; i < a.length; i++) {
@@ -192,3 +191,4 @@ function mercariArraysEqual(a, b) {
   
   return true;
 }
+
