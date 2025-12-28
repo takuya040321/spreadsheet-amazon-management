@@ -8,7 +8,7 @@
  * @param {Date|string} dateValue - 変換する日付
  * @returns {Date|null} 日付のみのDateオブジェクト、変換失敗時はnull
  */
-function amazon_amazon_parseDateOnly(dateValue) {
+function amazon_parseDateOnly(dateValue) {
   if (!dateValue) return null;
   
   let targetDate;
@@ -267,7 +267,7 @@ function amazon_processRefundData(amazonSalesSheet, productSheet, sourceRow, tar
   }
 }
 
-function amazon_amazon_processShippingService(amazonSalesSheet, productSheet, sourceRow, targetRow) {
+function amazon_processShippingService(amazonSalesSheet, productSheet, sourceRow, targetRow) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));
@@ -353,7 +353,7 @@ function amazon_amazon_processShippingService(amazonSalesSheet, productSheet, so
   }
 }
 
-function amazon_amazon_processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, targetRow, rowData) {
+function amazon_processAdjustmentData(amazonSalesSheet, productSheet, sourceRow, targetRow, rowData) {
   try {
     // targetRowがカンマ区切りの場合に分割して処理
     const targetRows = String(targetRow).split(",").map(row => parseInt(row.trim())).filter(row => !isNaN(row));

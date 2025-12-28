@@ -158,7 +158,7 @@ function mercari_processRows(mercariData, productData, startIndex, usedProductRo
   return { updates, processedCount, rowsToDelete };
 }
 
-function mercari_mercari_processNormalDataRow(rowData, productData, row, usedProductRows) {
+function mercari_processNormalDataRow(rowData, productData, row, usedProductRows) {
   try {
     const fValue = rowData[5]; // F列の値（0ベースなので5）
     const oValue = rowData[14]; // O列の値（0ベースなので14）
@@ -381,7 +381,7 @@ function mercari_batchUpdateSheet(mercariSalesSheet, updates) {
   }
 }
 
-function mercari_mercari_collectRowsToDelete(mercariData, gValue, currentRow, excludedRows, rowsToDelete) {
+function mercari_collectRowsToDelete(mercariData, gValue, currentRow, excludedRows, rowsToDelete) {
   console.log(`★G列検索開始（削除対象収集）★ 検索値:"${gValue}" 現在行:${currentRow}`);
   let hitCount = 0;
   
@@ -413,7 +413,7 @@ function mercari_mercari_collectRowsToDelete(mercariData, gValue, currentRow, ex
   console.log(`★G列検索完了（削除対象収集）★ 検索値:"${gValue}" で ${hitCount} 件を削除対象に追加`);
 }
 
-function mercari_mercari_deleteRow(rowNumber) {
+function mercari_deleteRow(rowNumber) {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const mercariSalesSheet = spreadsheet.getSheetByName("メルカリ売上");
   
@@ -423,14 +423,14 @@ function mercari_mercari_deleteRow(rowNumber) {
   }
   
   try {
-    mercariSalesSheet.mercari_deleteRow(rowNumber);
+    mercariSalesSheet.deleteRow(rowNumber);
     console.log(`行 ${rowNumber} を削除しました`);
   } catch (error) {
     console.error(`行 ${rowNumber} の削除に失敗しました:`, error);
   }
 }
 
-function mercari_mercari_searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
+function mercari_searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const yColumnValue = productData[i][24]; // Y列（0始まりなので24）

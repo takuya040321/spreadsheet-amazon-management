@@ -25,7 +25,7 @@ const DUPLICATE_CHECK_CONFIG = {
 // プロパティから設定値を取得
 // ============================================
 
-function spapi_spapi_getScriptConfig() {
+function spapi_getScriptConfig() {
   const props = PropertiesService.getScriptProperties();
   const keys = [
     "LWA_CLIENT_ID",
@@ -49,7 +49,7 @@ function spapi_spapi_getScriptConfig() {
 // 登録処理の実行（修正版 - 重複行へのY列コピー追加）
 // ============================================
 
-function spapi_spapi_executeRegistration(sheet, accessToken, scriptConfig, processableRows, analysisResult) {
+function spapi_executeRegistration(sheet, accessToken, scriptConfig, processableRows, analysisResult) {
   const results = [];
   
   for (const row of processableRows) {
@@ -133,7 +133,7 @@ function spapi_spapi_executeRegistration(sheet, accessToken, scriptConfig, proce
  * @param {number} rowNumber - 行番号
  * @param {string} value - コピーする値
  */
-function spapi_spapi_copyValueToSkipColumn(sheet, rowNumber, value) {
+function spapi_copyValueToSkipColumn(sheet, rowNumber, value) {
   if (!value || value.trim() === "") {
     Logger.log("コピーする値が空のため、Y列コピーをスキップ: 行 " + rowNumber);
     return;
@@ -150,7 +150,7 @@ function spapi_spapi_copyValueToSkipColumn(sheet, rowNumber, value) {
  * @param {string} duplicateValue - X列の値（重複キー）
  * @param {Object} analysisResult - 分析結果
  */
-function spapi_spapi_copyValueToDuplicateRows(sheet, duplicateValue, analysisResult) {
+function spapi_copyValueToDuplicateRows(sheet, duplicateValue, analysisResult) {
   if (!duplicateValue || duplicateValue.trim() === "" || duplicateValue === "(空白)") {
     return;
   }
@@ -245,7 +245,7 @@ function spapi_registerSelectedProducts() {
  * @param {Sheet} sheet - 対象シート
  * @returns {number[]} - 対象行番号の配列（重複なし、昇順）
  */
-function spapi_spapi_getTargetRowsFromSelection(sheet) {
+function spapi_getTargetRowsFromSelection(sheet) {
   const selection = sheet.getActiveRange();
   if (!selection) return [];
   
@@ -273,7 +273,7 @@ function spapi_spapi_getTargetRowsFromSelection(sheet) {
  * @param {number[]} targetRows - 対象行番号の配列
  * @returns {Object[]} - 行データオブジェクトの配列
  */
-function spapi_spapi_getRowDataList(sheet, targetRows) {
+function spapi_getRowDataList(sheet, targetRows) {
   const lastColumn = Math.max(
     PROFIT_SHEET_CONFIG.COLUMN.SKU,
     DUPLICATE_CHECK_CONFIG.DUPLICATE_COLUMN,
@@ -302,7 +302,7 @@ function spapi_spapi_getRowDataList(sheet, targetRows) {
  * @param {Object[]} rowDataList - 行データオブジェクトの配列
  * @returns {Object} - 分析結果
  */
-function spapi_spapi_analyzeTargetRows(rowDataList) {
+function spapi_analyzeTargetRows(rowDataList) {
   // X列の値でグループ化して重複を検出
   const duplicateGroups = spapi_groupByDuplicateValue(rowDataList);
   const duplicateValues = new Set();
@@ -358,7 +358,7 @@ function spapi_spapi_analyzeTargetRows(rowDataList) {
  * @param {Object[]} rowDataList - 行データオブジェクトの配列
  * @returns {Object} - 値をキーとしたグループ
  */
-function spapi_spapi_groupByDuplicateValue(rowDataList) {
+function spapi_groupByDuplicateValue(rowDataList) {
   const groups = {};
   rowDataList.forEach(row => {
     const key = row.duplicateValue || "(空白)";
@@ -375,7 +375,7 @@ function spapi_spapi_groupByDuplicateValue(rowDataList) {
  * @param {*} value - Y列の値
  * @returns {boolean} - スキップ対象かどうか
  */
-function spapi_spapi_hasSkipValue(value) {
+function spapi_hasSkipValue(value) {
   if (value === null || value === undefined) return false;
   if (typeof value === "string" && value.trim() === "") return false;
   return true;
@@ -386,7 +386,7 @@ function spapi_spapi_hasSkipValue(value) {
  * @param {Object} row - 行データオブジェクト
  * @returns {Object} - バリデーション結果
  */
-function spapi_spapi_validateRowData(row) {
+function spapi_validateRowData(row) {
   if (!row.asin) {
     return { isValid: false, message: "ASINが未設定です" };
   }
@@ -408,7 +408,7 @@ function spapi_spapi_validateRowData(row) {
  * @param {Object} analysisResult - 分析結果
  * @returns {boolean} - ユーザーが承認したかどうか
  */
-function spapi_spapi_showApprovalDialog(analysisResult) {
+function spapi_showApprovalDialog(analysisResult) {
   const { totalSelected, skippedRows, validationErrors, processableRows } = analysisResult;
   
   let message = "選択: " + totalSelected + " 行\n";
@@ -441,7 +441,7 @@ function spapi_spapi_showApprovalDialog(analysisResult) {
  * @param {Object[]} processableRows - 処理対象行の配列
  * @returns {Object[]} - 処理結果の配列
  */
-function spapi_spapi_executeRegistration(sheet, accessToken, scriptConfig, processableRows) {
+function spapi_executeRegistration(sheet, accessToken, scriptConfig, processableRows) {
   const results = [];
   
   for (const row of processableRows) {
@@ -506,7 +506,7 @@ function spapi_spapi_executeRegistration(sheet, accessToken, scriptConfig, proce
 // アクセストークン取得（修正版）
 // ============================================
 
-function spapi_spapi_getAccessToken(config) {
+function spapi_getAccessToken(config) {
   const payload = {
     grant_type: "refresh_token",
     refresh_token: config.LWA_REFRESH_TOKEN,
@@ -549,7 +549,7 @@ function spapi_spapi_getAccessToken(config) {
 // SKU存在チェック（修正版）
 // ============================================
 
-function spapi_spapi_checkSkuExists(accessToken, sku, config) {
+function spapi_checkSkuExists(accessToken, sku, config) {
   // アクセストークンの検証
   if (!accessToken || accessToken.trim() === "") {
     throw new Error("アクセストークンが空です");
@@ -585,7 +585,7 @@ function spapi_spapi_checkSkuExists(accessToken, sku, config) {
 // 商品登録（PUT）（修正版）
 // ============================================
 
-function spapi_spapi_putListing(accessToken, sku, asin, price, config) {
+function spapi_putListing(accessToken, sku, asin, price, config) {
   // アクセストークンの検証
   if (!accessToken || accessToken.trim() === "") {
     throw new Error("アクセストークンが空です");
@@ -654,7 +654,7 @@ function spapi_spapi_putListing(accessToken, sku, asin, price, config) {
 // 商品タイプ取得（修正版）
 // ============================================
 
-function spapi_spapi_getProductTypeByAsin(accessToken, asin, config) {
+function spapi_getProductTypeByAsin(accessToken, asin, config) {
   if (!accessToken || accessToken.trim() === "") {
     throw new Error("アクセストークンが空です");
   }
@@ -733,7 +733,7 @@ function spapi_spapi_getProductTypeByAsin(accessToken, asin, config) {
 // 商品登録（PUT）（修正版）
 // ============================================
 
-function spapi_spapi_putListing(accessToken, sku, asin, price, config) {
+function spapi_putListing(accessToken, sku, asin, price, config) {
   if (!accessToken || accessToken.trim() === "") {
     throw new Error("アクセストークンが空です");
   }
@@ -804,7 +804,7 @@ function spapi_spapi_putListing(accessToken, sku, asin, price, config) {
 // 登録処理の実行（修正版 - エラーログ強化）
 // ============================================
 
-function spapi_spapi_executeRegistration(sheet, accessToken, scriptConfig, processableRows) {
+function spapi_executeRegistration(sheet, accessToken, scriptConfig, processableRows) {
   const results = [];
   
   for (const row of processableRows) {
@@ -880,7 +880,7 @@ function spapi_spapi_executeRegistration(sheet, accessToken, scriptConfig, proce
  * @param {string} message - エラーメッセージ
  * @returns {string} - エラータイプ
  */
-function spapi_spapi_detectErrorType(message) {
+function spapi_detectErrorType(message) {
   if (!message) return "UNKNOWN";
   
   const lowerMessage = message.toLowerCase();
@@ -912,7 +912,7 @@ function spapi_spapi_detectErrorType(message) {
  * @param {string} title - タイトル
  * @param {string} message - メッセージ
  */
-function spapi_spapi_showResult(title, message) {
+function spapi_showResult(title, message) {
   const ui = SpreadsheetApp.getUi();
   ui.alert(title, message, ui.ButtonSet.OK);
 }
@@ -923,7 +923,7 @@ function spapi_spapi_showResult(title, message) {
  * @param {number} successCount - 成功件数
  * @param {number} errorCount - エラー件数
  */
-function spapi_spapi_showResultDialog(results, successCount, errorCount) {
+function spapi_showResultDialog(results, successCount, errorCount) {
   let message = "処理が完了しました。\n\n";
   message += "成功: " + successCount + " 件\n";
   message += "エラー/スキップ: " + errorCount + " 件\n\n";
@@ -951,7 +951,7 @@ function spapi_spapi_showResultDialog(results, successCount, errorCount) {
  * @param {number} rowNumber - 行番号
  * @param {Object} result - 処理結果
  */
-function spapi_spapi_updateResultCell(sheet, rowNumber, result) {
+function spapi_updateResultCell(sheet, rowNumber, result) {
   // 結果列が定義されている場合のみ更新
   if (!PROFIT_SHEET_CONFIG.COLUMN.RESULT) {
     Logger.log("結果列が未定義のため、セル更新をスキップ: 行 " + rowNumber);
@@ -987,7 +987,7 @@ function spapi_spapi_updateResultCell(sheet, rowNumber, result) {
  * @param {number} rowNumber - 行番号
  * @param {string} sku - SKU
  */
-function spapi_spapi_copySkuToColumn(sheet, rowNumber, sku) {
+function spapi_copySkuToColumn(sheet, rowNumber, sku) {
   // SKUコピー先列が定義されている場合のみ実行
   if (!PROFIT_SHEET_CONFIG.COLUMN.SKU_COPY) {
     Logger.log("SKUコピー先列が未定義のため、コピーをスキップ: 行 " + rowNumber);

@@ -59,7 +59,7 @@ function utils_getSpApiConfig() {
   return config;
 }
 
-function utils_utils_makeSpApiRequest(url, method, body, accessToken, options) {
+function utils_makeSpApiRequest(url, method, body, accessToken, options) {
   options = options || {};
 
   const headers = {

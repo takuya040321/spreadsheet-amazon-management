@@ -167,7 +167,7 @@ function tools_copyCheckedRowsToProductManagement() {
  * @param {number} rowNumber - 行番号（ログ用）
  * @returns {number|null} - 有効な個数、または無効な場合はnull
  */
-function tools_tools_validateQuantity(value, rowNumber) {
+function tools_validateQuantity(value, rowNumber) {
   // 空、null、undefinedチェック
   if (value === "" || value === null || value === undefined) {
     Logger.log("行 " + rowNumber + ": 個数が空のためスキップ");
@@ -207,7 +207,7 @@ function tools_tools_validateQuantity(value, rowNumber) {
  * @param {Sheet} sheet - 対象シート
  * @returns {number} - 最終行番号（データなしの場合は0）
  */
-function tools_tools_getLastRowWithData(sheet) {
+function tools_getLastRowWithData(sheet) {
   const lastRow = sheet.getLastRow();
   
   // シートにデータがない場合

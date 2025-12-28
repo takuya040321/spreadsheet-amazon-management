@@ -148,7 +148,7 @@ function amazon_processDataRow(rowData, productData, row, usedProductRows, amazo
   }
 }
 
-function amazon_amazon_processAdjustment(productData, row, productName, sku, today, usedProductRows) {
+function amazon_processAdjustment(productData, row, productName, sku, today, usedProductRows) {
   // FBA在庫返金の場合は転記対象外
   if (productName && productName.includes("FBA在庫の返金 - 購入者による返品:")) {
     return {
@@ -179,7 +179,7 @@ function amazon_amazon_processAdjustment(productData, row, productName, sku, tod
   };
 }
 
-function amazon_amazon_processRefund(row, orderNumber, today, amazonData) {
+function amazon_processRefund(row, orderNumber, today, amazonData) {
   if (!orderNumber) {
     console.log(`行 ${row}: I列に注文番号が見つかりませんでした、スキップします`);
     return null;
@@ -200,7 +200,7 @@ function amazon_amazon_processRefund(row, orderNumber, today, amazonData) {
   }
 }
 
-function amazon_amazon_processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity) {
+function amazon_processSKUSearchWithQuantity(productData, row, sku, today, usedProductRows, quantity) {
   if (!sku) {
     console.log(`行 ${row}: SKUが見つかりませんでした、スキップします`);
     return null;
@@ -234,7 +234,7 @@ function amazon_amazon_processSKUSearchWithQuantity(productData, row, sku, today
   }
 }
 
-function amazon_amazon_processDeliveryService(row, orderNumber, today, amazonData) {
+function amazon_processDeliveryService(row, orderNumber, today, amazonData) {
   if (!orderNumber) {
     console.log(`行 ${row}: I列に注文番号が見つかりませんでした、スキップします`);
     return null;
@@ -255,7 +255,7 @@ function amazon_amazon_processDeliveryService(row, orderNumber, today, amazonDat
   }
 }
 
-function amazon_amazon_searchSKU(productSheet, sku) {
+function amazon_searchSKU(productSheet, sku) {
   const lastRow = productSheet.getLastRow();
   
   for (let row = 2; row <= lastRow; row++) {
@@ -271,7 +271,7 @@ function amazon_amazon_searchSKU(productSheet, sku) {
   return null;
 }
 
-function amazon_amazon_getProductStatus(productSheet, row) {
+function amazon_getProductStatus(productSheet, row) {
   // IFS関数による動的ステータス計算の実装
   const zCol = productSheet.getRange(row, 26).getValue(); // Z列
   const aaCol = productSheet.getRange(row, 27).getValue(); // AA列
@@ -288,7 +288,7 @@ function amazon_amazon_getProductStatus(productSheet, row) {
   }
 }
 
-function amazon_amazon_getColumnByHeader(sheet, headerName) {
+function amazon_getColumnByHeader(sheet, headerName) {
   const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
   for (let col = 0; col < headerRow.length; col++) {
@@ -348,7 +348,7 @@ function amazon_batchUpdateSheet(amazonSalesSheet, updates) {
   }
 }
 
-function amazon_amazon_searchSKUInArray(productData, sku, usedProductRows = new Set()) {
+function amazon_searchSKUInArray(productData, sku, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
     const row = i + 3; // 実際の行番号（3行目から開始）
     const skuColumnIndex = 24; // Y列（0始まりなので24）
