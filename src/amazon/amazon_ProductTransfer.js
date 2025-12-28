@@ -3,38 +3,6 @@
  * Amazon売上データを商品管理シートに転記する
  */
 
-/**
- * 日付をDateオブジェクトに変換する（時刻部分を除去）
- * @param {Date|string} dateValue - 変換する日付
- * @returns {Date|null} 日付のみのDateオブジェクト、変換失敗時はnull
- */
-function amazon_parseDateOnly(dateValue) {
-  if (!dateValue) return null;
-  
-  let targetDate;
-  
-  if (dateValue instanceof Date) {
-    targetDate = dateValue;
-  } else {
-    const dateString = String(dateValue);
-    // "2025/11/30 14:20:38 JST" のような形式から日付部分を抽出
-    const dateMatch = dateString.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
-    if (dateMatch) {
-      targetDate = new Date(parseInt(dateMatch[1]), parseInt(dateMatch[2]) - 1, parseInt(dateMatch[3]));
-    } else {
-      // 別の形式の場合はDateオブジェクトに変換を試みる
-      targetDate = new Date(dateString);
-    }
-  }
-  
-  if (isNaN(targetDate.getTime())) {
-    return null;
-  }
-  
-  // 時刻を0時0分0秒にリセットして日付のみにする
-  return new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-}
-
 function amazon_transferToProductSheet() {
   try {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -146,7 +114,7 @@ function amazon_transferSalesData(amazonSalesSheet, productSheet, sourceRow, tar
     const revenue = amazonSalesSheet.getRange(sourceRow, 33).getValue() || 0; // AG列
     
     // 日付をDateオブジェクトに変換
-    const formattedDate = amazon_parseDateOnly(saleDate);
+    const formattedDate = utils_parseDateOnly(saleDate);
     
     // 販売価格（S列＋T列）を行数で分割
     const totalSalePrice = Number(sPrice) + Number(tPrice);
@@ -374,7 +342,7 @@ function amazon_processAdjustmentData(amazonSalesSheet, productSheet, sourceRow,
     const revenue = rowData[32] || 0; // AG列（合計（振込金額））
     
     // 日付をDateオブジェクトに変換
-    const formattedDate = amazon_parseDateOnly(saleDate);
+    const formattedDate = utils_parseDateOnly(saleDate);
     
     // L列の数値分だけ処理を繰り返す
     let totalSuccessCount = 0;

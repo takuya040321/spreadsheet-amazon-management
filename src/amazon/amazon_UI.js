@@ -79,7 +79,7 @@ function amazon_parseCsvContent(csvContent) {
   for (let i = 0; i < dataLines.length; i++) {
     const line = dataLines[i].trim();
     if (line) {
-      const row = amazon_parseCSVLine(line);
+      const row = utils_parseCSVLine(line);
       if (row && row.length > 0) {
         parsedData.push(row);
       }
@@ -87,35 +87,6 @@ function amazon_parseCsvContent(csvContent) {
   }
 
   return parsedData;
-}
-
-function amazon_parseCSVLine(line) {
-  const result = [];
-  let current = "";
-  let inQuotes = false;
-  let i = 0;
-
-  while (i < line.length) {
-    const char = line[i];
-    
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-    i++;
-  }
-  
-  result.push(current);
-  return result;
 }
 
 function amazon_writeToSalesSheet(csvData) {
@@ -175,20 +146,9 @@ function amazon_filterDuplicates(newData, existingData) {
 
   return newData.filter(newRow => {
     return !existingData.some(existingRow => {
-      return amazon_arraysEqual(newRow, existingRow);
+      return utils_arraysEqual(newRow, existingRow);
     });
   });
 }
 
-function amazon_arraysEqual(a, b) {
-  if (a.length !== b.length) return false;
-  
-  for (let i = 0; i < a.length; i++) {
-    if (String(a[i]).trim() !== String(b[i]).trim()) {
-      return false;
-    }
-  }
-  
-  return true;
-}
 
