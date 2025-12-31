@@ -59,6 +59,21 @@ function utils_getSpApiConfig() {
   return config;
 }
 
+function utils_getSpApiConfigWithKeys(requiredKeys) {
+  const props = PropertiesService.getScriptProperties();
+  const config = {};
+
+  requiredKeys.forEach(key => {
+    const value = props.getProperty(key);
+    if (!value) {
+      throw new Error("スクリプトプロパティ未設定: " + key);
+    }
+    config[key] = value;
+  });
+
+  return config;
+}
+
 function utils_makeSpApiRequest(url, method, body, accessToken, options) {
   options = options || {};
 

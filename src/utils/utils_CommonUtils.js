@@ -141,3 +141,17 @@ function utils_getExistingData(sheet, startColumn) {
   const range = sheet.getRange(1, startColumn, lastRow, lastCol - startColumn + 1);
   return range.getValues().filter(row => row.some(cell => cell !== ""));
 }
+
+function utils_batchUpdateColumns(sheet, updates, startRow) {
+  updates.forEach(update => {
+    const { column, values } = update;
+    if (!values || values.length === 0) return;
+
+    const nonEmptyValues = values.filter(v => v !== null && v !== undefined && v !== "");
+    if (nonEmptyValues.length === 0) return;
+
+    const range = sheet.getRange(startRow, column, values.length, 1);
+    const formattedValues = values.map(v => [v]);
+    range.setValues(formattedValues);
+  });
+}

@@ -231,41 +231,7 @@ function amazon_getDateRange(year, month) {
  * @returns {string} アクセストークン
  */
 function amazon_getAccessToken() {
-  const props = PropertiesService.getScriptProperties();
-  const clientId = props.getProperty("LWA_CLIENT_ID");
-  const clientSecret = props.getProperty("LWA_CLIENT_SECRET");
-  const refreshToken = props.getProperty("LWA_REFRESH_TOKEN");
-  const tokenEndpoint = props.getProperty("LWA_TOKEN_ENDPOINT");
-  
-  if (!clientId || !clientSecret || !refreshToken || !tokenEndpoint) {
-    throw new Error("LWA認証情報がスクリプトプロパティに設定されていません");
-  }
-  
-  const payload = {
-    grant_type: "refresh_token",
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken
-  };
-  
-  const options = {
-    method: "post",
-    contentType: "application/x-www-form-urlencoded",
-    payload: payload,
-    muteHttpExceptions: true
-  };
-  
-  const response = UrlFetchApp.fetch(tokenEndpoint, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-  
-  if (responseCode !== 200) {
-    console.error(`LWA認証エラー: ${responseBody}`);
-    throw new Error(`LWA認証に失敗しました（ステータス: ${responseCode}）`);
-  }
-  
-  const tokenData = JSON.parse(responseBody);
-  return tokenData.access_token;
+  return utils_getSpApiAccessToken();
 }
 
 // =============================================================================

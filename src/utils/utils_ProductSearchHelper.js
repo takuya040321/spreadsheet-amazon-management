@@ -27,7 +27,7 @@ function utils_searchProductByYColumn(productData, searchValue, usedProductRows,
       continue;
     }
 
-    const status = calculateProductStatus(productData[i]);
+    const status = utils_calculateProductStatus(productData[i]);
 
     if (status === PRODUCT_STATUS.SOLD) {
       continue;
@@ -47,7 +47,7 @@ function utils_searchMultipleProducts(productData, searchValue, quantity, usedPr
   const foundRows = [];
 
   for (let q = 0; q < quantity; q++) {
-    const row = searchProductByYColumn(productData, searchValue, usedProductRows, dataStartRow);
+    const row = utils_searchProductByYColumn(productData, searchValue, usedProductRows, dataStartRow);
     if (row) {
       foundRows.push(row);
       usedProductRows.add(row);

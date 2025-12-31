@@ -332,35 +332,19 @@ function mercari_deleteRow(rowNumber) {
 
 function mercari_searchProductByYColumn(productData, searchValue, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
-    const row = i + 3; // 実際の行番号（3行目から開始）
-    const yColumnValue = productData[i][24]; // Y列（0始まりなので24）
-    
-    // ステータス計算（A列の状態を判定）
-    const zCol = productData[i][25]; // Z列（26列目）
-    const aaCol = productData[i][26]; // AA列（27列目）
-    const afCol = productData[i][31]; // AF列（32列目）
-    
-    let status;
-    if (afCol === true) {
-      status = "4.販売/処分済";
-    } else if (aaCol === true) {
-      status = "3.販売中";
-    } else if (zCol === true) {
-      status = "2.受領/検品済";
-    } else {
-      status = "1.商品未受領";
-    }
-    
-    // 使用済みの行はスキップ
+    const row = i + 3;
+    const yColumnValue = productData[i][24];
+
     if (usedProductRows.has(row)) {
       continue;
     }
-    
-    // 「4.販売/処分済」以外のステータスかつY列の値が一致する場合
-    if (String(yColumnValue).trim() === String(searchValue).trim() && status !== "4.販売/処分済") {
+
+    const status = utils_calculateProductStatus(productData[i]);
+
+    if (String(yColumnValue).trim() === String(searchValue).trim() && status !== PRODUCT_STATUS.SOLD) {
       return row;
     }
   }
-  
+
   return null;
 }

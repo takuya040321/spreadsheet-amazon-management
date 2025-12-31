@@ -170,47 +170,7 @@ function spapi_confirmSkus_(skuCounts) {
  * @returns {string} アクセストークン
  */
 function spapi_getAccessToken_() {
-  console.log("アクセストークンを取得中...");
-  
-  const props = PropertiesService.getScriptProperties();
-  const clientId = props.getProperty("LWA_CLIENT_ID");
-  const clientSecret = props.getProperty("LWA_CLIENT_SECRET");
-  const refreshToken = props.getProperty("LWA_REFRESH_TOKEN");
-  const tokenEndpoint = props.getProperty("LWA_TOKEN_ENDPOINT") || "https://api.amazon.com/auth/o2/token";
-  
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("LWA認証情報がScript Propertiesに設定されていません。\\nLWA_CLIENT_ID, LWA_CLIENT_SECRET, LWA_REFRESH_TOKENを確認してください。");
-  }
-  
-  const payload = {
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: clientId,
-    client_secret: clientSecret
-  };
-  
-  const options = {
-    method: "post",
-    contentType: "application/x-www-form-urlencoded",
-    payload: payload,
-    muteHttpExceptions: true
-  };
-  
-  const response = UrlFetchApp.fetch(tokenEndpoint, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-  
-  console.log("LWAトークンレスポンスコード:", responseCode);
-  
-  if (responseCode !== 200) {
-    console.error("LWAトークン取得エラー:", responseBody);
-    throw new Error("アクセストークンの取得に失敗しました: " + responseBody);
-  }
-  
-  const tokenData = JSON.parse(responseBody);
-  console.log("アクセストークンを取得しました");
-  
-  return tokenData.access_token;
+  return utils_getSpApiAccessToken();
 }
 
 /**
@@ -218,26 +178,7 @@ function spapi_getAccessToken_() {
  * @returns {Object} 住所オブジェクト
  */
 function spapi_getSourceAddress_() {
-  const props = PropertiesService.getScriptProperties();
-  
-  const address = {
-    name: props.getProperty("SHIP_FROM_NAME"),
-    addressLine1: props.getProperty("SHIP_FROM_ADDRESS_LINE1"),
-    addressLine2: props.getProperty("SHIP_FROM_ADDRESS_LINE2") || "",
-    city: props.getProperty("SHIP_FROM_CITY"),
-    stateOrProvinceCode: props.getProperty("SHIP_FROM_STATE"),
-    postalCode: props.getProperty("SHIP_FROM_POSTAL_CODE"),
-    countryCode: props.getProperty("SHIP_FROM_COUNTRY_CODE") || "JP",
-    phoneNumber: props.getProperty("SHIP_FROM_PHONE")
-  };
-  
-  // 必須項目のチェック
-  if (!address.name || !address.addressLine1 || !address.city || !address.postalCode || !address.phoneNumber) {
-    throw new Error("出荷元住所がScript Propertiesに設定されていません。\\nSHIP_FROM_NAME, SHIP_FROM_ADDRESS_LINE1, SHIP_FROM_CITY, SHIP_FROM_POSTAL_CODE, SHIP_FROM_PHONEを確認してください。");
-  }
-  
-  console.log("出荷元住所を取得しました:", JSON.stringify(address));
-  return address;
+  return utils_getSourceAddress();
 }
 
 /**

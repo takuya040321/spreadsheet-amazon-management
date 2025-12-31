@@ -272,20 +272,8 @@ function amazon_searchSKU(productSheet, sku) {
 }
 
 function amazon_getProductStatus(productSheet, row) {
-  // IFS関数による動的ステータス計算の実装
-  const zCol = productSheet.getRange(row, 26).getValue(); // Z列
-  const aaCol = productSheet.getRange(row, 27).getValue(); // AA列
-  const afCol = productSheet.getRange(row, 32).getValue(); // AF列
-  
-  if (afCol === true) {
-    return "4.販売/処分済";
-  } else if (aaCol === true) {
-    return "3.販売中";
-  } else if (zCol === true) {
-    return "2.受領/検品済";
-  } else {
-    return "1.商品未受領";
-  }
+  const rowData = productSheet.getRange(row, 1, 1, 33).getValues()[0];
+  return utils_calculateProductStatus(rowData);
 }
 
 function amazon_getColumnByHeader(sheet, headerName) {
@@ -350,37 +338,21 @@ function amazon_batchUpdateSheet(amazonSalesSheet, updates) {
 
 function amazon_searchSKUInArray(productData, sku, usedProductRows = new Set()) {
   for (let i = 0; i < productData.length; i++) {
-    const row = i + 3; // 実際の行番号（3行目から開始）
-    const skuColumnIndex = 24; // Y列（0始まりなので24）
+    const row = i + 3;
+    const skuColumnIndex = 24;
     const sheetSku = productData[i][skuColumnIndex];
-    
-    // ステータス計算（元getProductStatusFromArray関数の処理）
-    const zCol = productData[i][25]; // Z列（26列目）
-    const aaCol = productData[i][26]; // AA列（27列目）
-    const afCol = productData[i][31]; // AF列（32列目）
-    
-    let status;
-    if (afCol === true) {
-      status = "4.販売/処分済";
-    } else if (aaCol === true) {
-      status = "3.販売中";
-    } else if (zCol === true) {
-      status = "2.受領/検品済";
-    } else {
-      status = "1.商品未受領";
-    }
-    
-    // 使用済みの行はスキップ
+
     if (usedProductRows.has(row)) {
       continue;
     }
-    
-    // 「4.販売/処分済」以外のステータスを検索対象とする
-    if (String(sheetSku).trim() === String(sku).trim() && status !== "4.販売/処分済") {
+
+    const status = utils_calculateProductStatus(productData[i]);
+
+    if (String(sheetSku).trim() === String(sku).trim() && status !== PRODUCT_STATUS.SOLD) {
       return row;
     }
   }
-  
+
   return null;
 }
 

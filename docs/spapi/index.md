@@ -62,6 +62,7 @@
 | MARKETPLACE_ID | マーケットプレイスID |
 | SP_API_ENDPOINT | SP-APIエンドポイント |
 | LWA_TOKEN_ENDPOINT | LWAトークンエンドポイント |
+| AUTOMATED_PRICING_RULE_ID | 自動価格設定ルールID |
 
 ### FBA納品用追加プロパティ
 

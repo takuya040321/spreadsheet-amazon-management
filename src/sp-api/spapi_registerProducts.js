@@ -1,11 +1,5 @@
 /**
- * Amazon SP-API 商品登録スクリプト（リファクタリング版）
- * 
- * 主な変更点:
- * - チェックボックス基準から選択セル基準に変更
- * - X列による重複チェック機能を追加
- * - Y列によるスキップロジックを追加
- * - 登録前の承認フローを追加
+ * Amazon SP-API 商品登録スクリプト
  */
 
 // ============================================
@@ -26,8 +20,7 @@ const DUPLICATE_CHECK_CONFIG = {
 // ============================================
 
 function spapi_getScriptConfig() {
-  const props = PropertiesService.getScriptProperties();
-  const keys = [
+  const requiredKeys = [
     "LWA_CLIENT_ID",
     "LWA_CLIENT_SECRET",
     "LWA_REFRESH_TOKEN",
@@ -35,28 +28,23 @@ function spapi_getScriptConfig() {
     "MARKETPLACE_ID",
     "SP_API_ENDPOINT",
     "LWA_TOKEN_ENDPOINT",
+    "AUTOMATED_PRICING_RULE_ID",
   ];
-  const config = {};
-  keys.forEach(key => {
-    const value = props.getProperty(key);
-    if (!value) throw new Error("スクリプトプロパティ未設定: " + key);
-    config[key] = value;
-  });
-  return config;
+  return utils_getSpApiConfigWithKeys(requiredKeys);
 }
 
 // ============================================
-// 登録処理の実行（修正版 - 重複行へのY列コピー追加）
+// 登録処理の実行
 // ============================================
 
 function spapi_executeRegistration(sheet, accessToken, scriptConfig, processableRows, analysisResult) {
   const results = [];
-  
+
   for (const row of processableRows) {
-    const { rowNumber, asin, sku, price, duplicateValue } = row;
-    
+    const { rowNumber, asin, sku, price, breakEvenPrice, duplicateValue } = row;
+
     Logger.log("--- 処理開始: 行 " + rowNumber + " ---");
-    
+
     // SKU存在チェック
     try {
       const skuExists = spapi_checkSkuExists(accessToken, sku, scriptConfig);
@@ -78,7 +66,7 @@ function spapi_executeRegistration(sheet, accessToken, scriptConfig, processable
     } catch (e) {
       Logger.log("SKU存在チェックエラー (行 " + rowNumber + "): " + e.message);
     }
-    
+
     // 商品登録処理
     try {
       const response = spapi_putListing(accessToken, sku, asin, price, scriptConfig);
@@ -93,14 +81,36 @@ function spapi_executeRegistration(sheet, accessToken, scriptConfig, processable
       results.push(result);
       spapi_updateResultCell(sheet, rowNumber, result);
       spapi_copySkuToColumn(sheet, rowNumber, sku);
-      
+
       // Y列にX列の値をコピー（登録成功した行）
       spapi_copyValueToSkipColumn(sheet, rowNumber, duplicateValue);
-      
+
       // 重複行にもY列をコピー
       spapi_copyValueToDuplicateRows(sheet, duplicateValue, analysisResult);
-      
+
       Logger.log("登録成功: 行 " + rowNumber);
+
+      // 価格設定（下限価格・自動価格ルール）
+      const hasBreakEvenPrice = breakEvenPrice && !isNaN(breakEvenPrice) && breakEvenPrice > 0;
+      const hasRuleId = scriptConfig.AUTOMATED_PRICING_RULE_ID && scriptConfig.AUTOMATED_PRICING_RULE_ID.trim() !== "";
+
+      if (hasBreakEvenPrice || hasRuleId) {
+        try {
+          const minimumPrice = hasBreakEvenPrice ? Math.ceil(breakEvenPrice * 1.1) : null;
+          if (hasBreakEvenPrice) {
+            Logger.log("下限価格設定: " + breakEvenPrice + " × 1.1 = " + minimumPrice);
+          }
+          if (hasRuleId) {
+            Logger.log("自動価格ルール設定: " + scriptConfig.AUTOMATED_PRICING_RULE_ID);
+          }
+          spapi_patchPricingSettings(accessToken, sku, minimumPrice, response.productType, scriptConfig);
+          Logger.log("価格設定成功: 行 " + rowNumber);
+        } catch (pricingError) {
+          Logger.log("価格設定エラー (行 " + rowNumber + "): " + pricingError.message);
+        }
+      } else {
+        Logger.log("Q列が空かつルールID未設定のため価格設定をスキップ: 行 " + rowNumber);
+      }
     } catch (e) {
       Logger.log("商品登録エラー (行 " + rowNumber + "): " + e.message);
       const errorType = spapi_detectErrorType(e.message);
@@ -115,11 +125,11 @@ function spapi_executeRegistration(sheet, accessToken, scriptConfig, processable
       results.push(result);
       spapi_updateResultCell(sheet, rowNumber, result);
     }
-    
+
     Logger.log("--- 処理完了: 行 " + rowNumber + " ---");
     Utilities.sleep(1000);
   }
-  
+
   return results;
 }
 
@@ -279,7 +289,7 @@ function spapi_getRowDataList(sheet, targetRows) {
     DUPLICATE_CHECK_CONFIG.DUPLICATE_COLUMN,
     DUPLICATE_CHECK_CONFIG.SKIP_COLUMN
   );
-  
+
   return targetRows.map(rowNumber => {
     const rowData = sheet.getRange(rowNumber, 1, 1, lastColumn).getValues()[0];
     return {
@@ -287,6 +297,7 @@ function spapi_getRowDataList(sheet, targetRows) {
       asin: String(rowData[PROFIT_SHEET_CONFIG.COLUMN.ASIN - 1] || "").trim(),
       sku: String(rowData[PROFIT_SHEET_CONFIG.COLUMN.SKU - 1] || "").trim(),
       price: rowData[PROFIT_SHEET_CONFIG.COLUMN.PRICE - 1],
+      breakEvenPrice: rowData[PROFIT_SHEET_CONFIG.COLUMN.BREAK_EVEN - 1],
       duplicateValue: String(rowData[DUPLICATE_CHECK_CONFIG.DUPLICATE_COLUMN - 1] || "").trim(),
       skipValue: rowData[DUPLICATE_CHECK_CONFIG.SKIP_COLUMN - 1],
     };
@@ -431,7 +442,7 @@ function spapi_showApprovalDialog(analysisResult) {
 
 
 // ============================================
-// アクセストークン取得（修正版）
+// アクセストークン取得
 // ============================================
 
 function spapi_getAccessToken(config) {
@@ -474,7 +485,7 @@ function spapi_getAccessToken(config) {
 }
 
 // ============================================
-// SKU存在チェック（修正版）
+// SKU存在チェック
 // ============================================
 
 function spapi_checkSkuExists(accessToken, sku, config) {
@@ -494,7 +505,7 @@ function spapi_checkSkuExists(accessToken, sku, config) {
   const headers = {
     "Authorization": "Bearer " + accessToken,
     "Accept": "application/json",
-    "x-amz-access-token": accessToken  // 追加：SP-API用ヘッダー
+    "x-amz-access-token": accessToken
   };
   
   const res = UrlFetchApp.fetch(url, {
@@ -510,7 +521,7 @@ function spapi_checkSkuExists(accessToken, sku, config) {
 }
 
 // ============================================
-// 商品タイプ取得（修正版）
+// 商品タイプ取得
 // ============================================
 
 function spapi_getProductTypeByAsin(accessToken, asin, config) {
@@ -518,7 +529,6 @@ function spapi_getProductTypeByAsin(accessToken, asin, config) {
     throw new Error("アクセストークンが空です");
   }
   
-  // includedData に productTypes を追加
   const url = config.SP_API_ENDPOINT +
               "/catalog/2022-04-01/items/" +
               encodeURIComponent(asin) +
@@ -589,7 +599,7 @@ function spapi_getProductTypeByAsin(accessToken, asin, config) {
 }
 
 // ============================================
-// 商品登録（PUT）（修正版）
+// 商品登録（PUT）
 // ============================================
 
 function spapi_putListing(accessToken, sku, asin, price, config) {
@@ -656,7 +666,185 @@ function spapi_putListing(accessToken, sku, asin, price, config) {
   }
   
   Logger.log("=== 商品登録完了 ===");
-  return { status: "FBA出品登録完了" };
+  return { status: "FBA出品登録完了", productType: productType };
+}
+
+// ============================================
+// 下限価格・自動価格設定（PATCH）
+// ============================================
+
+function spapi_patchPricingSettings(accessToken, sku, minimumPrice, productType, config) {
+  if (!accessToken || accessToken.trim() === "") {
+    throw new Error("アクセストークンが空です");
+  }
+
+  const ruleId = config.AUTOMATED_PRICING_RULE_ID;
+  const hasMinPrice = minimumPrice && !isNaN(minimumPrice) && minimumPrice > 0;
+  const hasRuleId = ruleId && ruleId.trim() !== "";
+
+  Logger.log("=== 価格設定開始 ===");
+  Logger.log("SKU: " + sku + ", 下限価格: " + (hasMinPrice ? minimumPrice : "なし") + ", ルールID: " + (hasRuleId ? ruleId : "なし"));
+
+  const url = config.SP_API_ENDPOINT +
+              "/listings/2021-08-01/items/" +
+              config.SELLER_ID + "/" +
+              encodeURIComponent(sku) +
+              "?marketplaceIds=" + config.MARKETPLACE_ID;
+
+  const purchasableOfferValue = {
+    marketplace_id: config.MARKETPLACE_ID,
+  };
+
+  if (hasMinPrice) {
+    purchasableOfferValue.minimum_seller_allowed_price = [
+      {
+        schedule: [
+          {
+            value_with_tax: minimumPrice
+          }
+        ]
+      }
+    ];
+  }
+
+  if (hasRuleId) {
+    purchasableOfferValue.automated_pricing_merchandising_rule_plan = [
+      {
+        merchandising_rule: {
+          rule_id: ruleId
+        }
+      }
+    ];
+  }
+
+  const body = {
+    productType: productType,
+    patches: [
+      {
+        op: "replace",
+        path: "/attributes/purchasable_offer",
+        value: [purchasableOfferValue]
+      }
+    ]
+  };
+
+  Logger.log("価格設定URL: " + url);
+  Logger.log("価格設定ボディ: " + JSON.stringify(body));
+
+  const options = {
+    method: "patch",
+    contentType: "application/json",
+    headers: {
+      "Authorization": "Bearer " + accessToken,
+      "Accept": "application/json",
+      "x-amz-access-token": accessToken
+    },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true
+  };
+
+  const res = UrlFetchApp.fetch(url, options);
+
+  const status = res.getResponseCode();
+  const responseBody = res.getContentText();
+
+  Logger.log("価格設定レスポンス (HTTP " + status + "): " + responseBody);
+
+  if (status >= 400) {
+    throw new Error("価格設定失敗 (HTTP " + status + "): " + responseBody);
+  }
+
+  Logger.log("=== 価格設定完了 ===");
+  return { status: "価格設定完了" };
+}
+
+// ============================================
+// 自動価格設定ルール取得
+// ============================================
+
+function spapi_getAvailablePricingRules() {
+  const scriptConfig = spapi_getScriptConfig();
+  const accessToken = spapi_getAccessToken(scriptConfig);
+
+  const productType = "PRODUCT";
+  const url = scriptConfig.SP_API_ENDPOINT +
+              "/definitions/2020-09-01/productTypes/" +
+              encodeURIComponent(productType) +
+              "?sellerId=" + scriptConfig.SELLER_ID +
+              "&marketplaceIds=" + scriptConfig.MARKETPLACE_ID +
+              "&productTypeVersion=LATEST" +
+              "&requirements=LISTING" +
+              "&requirementsEnforced=ENFORCED";
+
+  Logger.log("ルール取得URL: " + url);
+
+  const options = {
+    method: "get",
+    headers: {
+      "Authorization": "Bearer " + accessToken,
+      "Accept": "application/json",
+      "x-amz-access-token": accessToken
+    },
+    muteHttpExceptions: true
+  };
+
+  const res = UrlFetchApp.fetch(url, options);
+  const status = res.getResponseCode();
+  const responseBody = res.getContentText();
+
+  if (status >= 400) {
+    throw new Error("ルール取得失敗 (HTTP " + status + "): " + responseBody);
+  }
+
+  const json = JSON.parse(responseBody);
+  const schemaLink = json.schema ? json.schema.link : null;
+
+  if (!schemaLink || !schemaLink.resource) {
+    throw new Error("スキーマリンクが見つかりません");
+  }
+
+  const schemaRes = UrlFetchApp.fetch(schemaLink.resource, {
+    method: "get",
+    muteHttpExceptions: true
+  });
+
+  const schemaStatus = schemaRes.getResponseCode();
+  if (schemaStatus >= 400) {
+    throw new Error("スキーマ取得失敗 (HTTP " + schemaStatus + ")");
+  }
+
+  const schema = JSON.parse(schemaRes.getContentText());
+
+  const purchasableOffer = schema.properties?.purchasable_offer?.items?.properties;
+  const rulePlan = purchasableOffer?.automated_pricing_merchandising_rule_plan?.items?.properties?.merchandising_rule?.properties?.rule_id;
+
+  if (!rulePlan || !rulePlan.enum) {
+    Logger.log("利用可能な自動価格設定ルールが見つかりません");
+    SpreadsheetApp.getUi().alert("情報", "利用可能な自動価格設定ルールが見つかりませんでした。", SpreadsheetApp.getUi().ButtonSet.OK);
+    return [];
+  }
+
+  const rules = [];
+  const enumValues = rulePlan.enum || [];
+  const enumNames = rulePlan.enumNames || [];
+
+  for (let i = 0; i < enumValues.length; i++) {
+    rules.push({
+      ruleId: enumValues[i],
+      displayName: enumNames[i] || enumValues[i]
+    });
+  }
+
+  Logger.log("=== 利用可能な自動価格設定ルール ===");
+  let message = "利用可能な自動価格設定ルール:\n\n";
+  rules.forEach((rule, index) => {
+    Logger.log((index + 1) + ". " + rule.displayName + "\n   ID: " + rule.ruleId);
+    message += (index + 1) + ". " + rule.displayName + "\n   ID: " + rule.ruleId + "\n\n";
+  });
+
+  SpreadsheetApp.getUi().alert("自動価格設定ルール一覧", message, SpreadsheetApp.getUi().ButtonSet.OK);
+
+  return rules;
 }
 
 // ============================================
