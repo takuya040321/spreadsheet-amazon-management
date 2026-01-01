@@ -13,31 +13,46 @@
             color: initial;
         }
     </style>
+</head>
+<body>
+    <h1>メルカリCSVファイル読み込み</h1>
+    <div>
+        <form id="select-file">
+            <input type="file" name="selectFile" accept=".csv">
+            <p>選択されていません</p>
+        </form>
+    </div>
+    <div>
+        <form id="upload-button">
+            <button type="button" onclick="handleCsvUpload()">読み込み実行</button>
+            <button type="button" onclick="closeDialog()">キャンセル</button>
+        </form>
+    </div>
     <script>
         function handleCsvUpload() {
-            const fileInput = document.querySelector("input[type=\"file\"]");
-            const file = fileInput.files[0];
-            const uploadButton = document.querySelector("button[onclick='handleCsvUpload()']");
-            const statusText = document.querySelector("#select-file p");
-            
+            var fileInput = document.querySelector("input[type='file']");
+            var file = fileInput.files[0];
+            var uploadButton = document.querySelector("button[onclick='handleCsvUpload()']");
+            var statusText = document.querySelector("#select-file p");
+
             if (!file) {
                 alert("ファイルが選択されていません。");
                 return;
             }
-            
+
             if (!file.name.endsWith(".csv")) {
                 alert("CSVファイルを選択してください。");
                 return;
             }
-            
+
             uploadButton.disabled = true;
             uploadButton.textContent = "処理中...";
             statusText.textContent = "メルカリCSV処理中です...";
-            
-            const reader = new FileReader();
+
+            var reader = new FileReader();
             reader.onload = function(e) {
-                const csvContent = e.target.result;
-                
+                var csvContent = e.target.result;
+
                 google.script.run
                     .withSuccessHandler(function(result) {
                         alert("メルカリCSV読み込みが完了しました。");
@@ -49,9 +64,9 @@
                         uploadButton.textContent = "読み込み実行";
                         statusText.textContent = file.name;
                     })
-                    .processMercariCsvContent(csvContent);
+                    .mercari_processCsvContent(csvContent);
             };
-            
+
             reader.readAsText(file, "UTF-8");
         }
 
@@ -60,9 +75,9 @@
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-            const fileInput = document.querySelector("input[type=\"file\"]");
-            const statusText = document.querySelector("#select-file p");
-            
+            var fileInput = document.querySelector("input[type='file']");
+            var statusText = document.querySelector("#select-file p");
+
             fileInput.addEventListener("change", function() {
                 if (this.files.length > 0) {
                     statusText.textContent = this.files[0].name;
@@ -72,20 +87,5 @@
             });
         });
     </script>
-</head>
-<body>
-    <h1>メルカリCSVファイル読み込み</h1>
-    <div>
-        <form id='select-file'>
-            <input type="file" name="selectFile" accept=".csv">
-            <p>選択されていません</p>
-        </form>
-    </div>
-    <div>
-        <form id='upload-button'>
-            <button type="button" onclick="handleCsvUpload()">読み込み実行</button>
-            <button type="button" onclick="closeDialog()">キャンセル</button>
-        </form>
-    </div>
 </body>
 </html>

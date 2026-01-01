@@ -12,7 +12,7 @@
  */
 function mercari_handleCsvImport() {
   try {
-    const htmlOutput = HtmlService.createHtmlOutputFromFile("mercariCsvDialog")
+    var htmlOutput = HtmlService.createHtmlOutputFromFile("mercari/mercari_CsvDialog")
       .setWidth(500)
       .setHeight(400);
     SpreadsheetApp.getUi().showModalDialog(htmlOutput, "メルカリCSV読み込み");
@@ -27,7 +27,7 @@ function mercari_handleCsvImport() {
  */
 function mercari_handleDataProcessing() {
   try {
-    const result = processMercariData();
+    var result = mercari_processData();
     SpreadsheetApp.getUi().alert("データ処理が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
@@ -40,7 +40,7 @@ function mercari_handleDataProcessing() {
  */
 function mercari_handleTransfer() {
   try {
-    const result = transferMercariToProductSheet();
+    var result = mercari_transferToProductSheet();
     SpreadsheetApp.getUi().alert("商品管理シートへの転記が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
