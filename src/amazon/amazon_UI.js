@@ -12,7 +12,7 @@
  */
 function amazon_handleCsvImport() {
   try {
-    const htmlOutput = HtmlService.createHtmlOutputFromFile("amazonCsvDialog")
+    var htmlOutput = HtmlService.createHtmlOutputFromFile("amazon/amazon_CsvDialog")
       .setWidth(500)
       .setHeight(400);
     SpreadsheetApp.getUi().showModalDialog(htmlOutput, "CSV読み込み");
@@ -27,7 +27,7 @@ function amazon_handleCsvImport() {
  */
 function amazon_handleDataProcessing() {
   try {
-    const result = processAmazonData();
+    var result = amazon_processData();
     SpreadsheetApp.getUi().alert("データ処理が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
@@ -40,7 +40,7 @@ function amazon_handleDataProcessing() {
  */
 function amazon_handleTransfer() {
   try {
-    const result = transferAmazonToProductSheet();
+    var result = amazon_transferToProductSheet();
     SpreadsheetApp.getUi().alert("商品管理シートへの転記が完了しました。\n" + result);
   } catch (error) {
     SpreadsheetApp.getUi().alert("エラーが発生しました: " + error.message);
