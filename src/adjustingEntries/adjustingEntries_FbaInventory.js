@@ -128,7 +128,7 @@ function adjustingEntries_processAllSkus(fbaSheet, productSheet, fbaData, produc
 
     if (processResult.status === "OK") {
       result.successCount++;
-      adjustingEntries_markAsProcessed(fbaSheet, fbaItem.rowIndex, "OK", "");
+      adjustingEntries_markAsProcessed(fbaSheet, fbaItem.rowIndex, "OK", processResult.message);
     } else if (processResult.status === "SKIP") {
       result.skipCount++;
       adjustingEntries_markAsProcessed(fbaSheet, fbaItem.rowIndex, "OK", "調整不要");
@@ -159,7 +159,7 @@ function adjustingEntries_processSingleSku(productSheet, productData, fbaItem) {
   var adjustResult = adjustingEntries_adjustAfColumn(productSheet, afStatus.rows, targetFalseCount, currentFalseCount);
 
   if (adjustResult.success) {
-    return { status: "OK", error: "" };
+    return { status: "OK", message: adjustResult.message };
   } else {
     return { status: "ERROR", error: adjustResult.error };
   }
@@ -212,6 +212,8 @@ function adjustingEntries_countAfColumnStatus(productData, rows) {
 
 function adjustingEntries_adjustAfColumn(productSheet, rowDetails, targetFalseCount, currentFalseCount) {
   var afCol = ADJUSTING_ENTRIES_CONFIG.PRODUCT_AF_COL;
+  var adjustedCount = 0;
+  var adjustmentType = "";
 
   if (currentFalseCount > targetFalseCount) {
     var toMakeTrue = currentFalseCount - targetFalseCount;
@@ -219,7 +221,9 @@ function adjustingEntries_adjustAfColumn(productSheet, rowDetails, targetFalseCo
 
     for (var i = 0; i < toMakeTrue && i < falseRows.length; i++) {
       productSheet.getRange(falseRows[i].row, afCol).setValue(true);
+      adjustedCount++;
     }
+    adjustmentType = "Trueに変更: " + adjustedCount + "件";
   } else if (currentFalseCount < targetFalseCount) {
     var toMakeFalse = targetFalseCount - currentFalseCount;
     var trueRows = rowDetails.filter(function(r) { return r.isSold; });
@@ -227,10 +231,12 @@ function adjustingEntries_adjustAfColumn(productSheet, rowDetails, targetFalseCo
 
     for (var j = 0; j < toMakeFalse && j < trueRows.length; j++) {
       productSheet.getRange(trueRows[j].row, afCol).setValue(false);
+      adjustedCount++;
     }
+    adjustmentType = "Falseに変更: " + adjustedCount + "件";
   }
 
-  return { success: true, error: "" };
+  return { success: true, error: "", message: adjustmentType };
 }
 
 function adjustingEntries_markAsProcessed(fbaSheet, rowIndex, status, errorMessage) {
