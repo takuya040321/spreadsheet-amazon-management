@@ -185,7 +185,7 @@ FBA納品プラン作成モジュール。
 | 関数名 | 役割 |
 |--------|------|
 | spapi_createShipmentPlan | メイン処理: FBA納品プランを作成 |
-| spapi_getSelectedSkus_ | 選択範囲からSKUを取得・集計 |
+| spapi_getSelectedSkus_ | 選択範囲からSKUを取得・集計（飛び飛び選択対応、フィルター非表示行除外） |
 | spapi_confirmSkus_ | SKU一覧を表示し確認を求める |
 | spapi_getAccessToken_ | アクセストークンを取得 |
 | spapi_getSourceAddress_ | 出荷元住所を取得 |

@@ -59,6 +59,8 @@ flowchart TB
 **関数**: getSelectedSkus_
 
 **処理内容**:
+- getActiveRangeList()で飛び飛び選択（Ctrl+クリック）にも対応
+- isRowHiddenByFilter()でフィルター非表示行を除外
 - 選択された行のY列（25列目）からSKUを取得
 - 同じSKUは個数をカウント
 - 空のセルはスキップ

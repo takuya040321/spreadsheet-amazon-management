@@ -156,7 +156,7 @@ flowchart TD
 | ファイル | 関数 | 役割 |
 |---------|------|------|
 | spapi_Shipment.js | spapi_createShipmentPlan | 納品プラン作成メイン処理 |
-| spapi_Shipment.js | spapi_getSelectedSkus_ | 選択範囲からSKU取得 |
+| spapi_Shipment.js | spapi_getSelectedSkus_ | 選択範囲からSKU取得（飛び飛び選択対応、フィルター非表示行除外） |
 | spapi_Shipment.js | spapi_confirmSkus_ | SKU確認ダイアログ |
 | spapi_Shipment.js | spapi_createFbaInboundPlan_ | SP-API呼び出し |
 | spapi_Shipment.js | spapi_setPrepDetails_ | 梱包カテゴリー設定 |
