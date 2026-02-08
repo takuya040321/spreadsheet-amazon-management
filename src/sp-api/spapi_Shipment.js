@@ -29,42 +29,24 @@
  * メニューから呼び出されるエントリーポイント
  */
 function spapi_createShipmentPlan() {
-  console.log("=== FBA納品プラン作成処理を開始 ===");
-  
   try {
-    // 1. 選択範囲からSKUを取得
-    console.log("ステップ1: 選択範囲からSKUを取得中...");
     const skuCounts = spapi_getSelectedSkus_();
-    
+
     if (Object.keys(skuCounts).length === 0) {
       Browser.msgBox("エラー", "選択された行にSKUが見つかりません。\\nY列にSKUが入力されているか確認してください。", Browser.Buttons.OK);
-      console.log("エラー: SKUが見つかりませんでした");
       return;
     }
-    
-    console.log("取得したSKU一覧:", JSON.stringify(skuCounts));
-    
-    // 2. SKU確認ダイアログを表示
-    console.log("ステップ2: ユーザー確認ダイアログを表示中...");
+
     const confirmed = spapi_confirmSkus_(skuCounts);
-    
     if (!confirmed) {
-      console.log("ユーザーがキャンセルしました。処理を中断します。");
       return;
     }
-    
-    // 3. SP-APIを呼び出して納品プランを作成
-    console.log("ステップ3: SP-API呼び出し中...");
+
     const result = spapi_createFbaInboundPlan_(skuCounts);
-    
-    // 4. 結果を表示
-    console.log("ステップ4: 結果を表示中...");
     spapi_showResult_(result);
-    
-    console.log("=== FBA納品プラン作成処理が完了しました ===");
-    
+
   } catch (error) {
-    console.error("エラーが発生しました:", error.message);
+    console.error("FBA納品プラン作成エラー:", error.message);
     Browser.msgBox("エラー", "処理中にエラーが発生しました:\\n" + error.message, Browser.Buttons.OK);
   }
 }
@@ -79,47 +61,46 @@ function spapi_createShipmentPlan() {
  */
 function spapi_getSelectedSkus_() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const activeRange = sheet.getActiveRange();
-  
-  if (!activeRange) {
+  const rangeList = sheet.getActiveRangeList();
+
+  if (!rangeList) {
     console.log("選択範囲がありません");
     return {};
   }
-  
-  console.log("選択範囲を取得しました:", activeRange.getA1Notation());
-  
-  // 選択範囲の全セルを取得
-  const numRows = activeRange.getNumRows();
-  const numCols = activeRange.getNumColumns();
-  const startRow = activeRange.getRow();
-  const startCol = activeRange.getColumn();
-  
-  console.log(`選択範囲: 開始行=${startRow}, 行数=${numRows}, 開始列=${startCol}, 列数=${numCols}`);
-  
-  // 選択された行番号を重複なく取得
+
+  const ranges = rangeList.getRanges();
+  const SKU_COLUMN = 25;
+
   const selectedRows = new Set();
-  for (let i = 0; i < numRows; i++) {
-    selectedRows.add(startRow + i);
+  for (const range of ranges) {
+    const rangeStartRow = range.getRow();
+    const rangeNumRows = range.getNumRows();
+    for (let i = 0; i < rangeNumRows; i++) {
+      const rowNum = rangeStartRow + i;
+      if (!sheet.isRowHiddenByFilter(rowNum)) {
+        selectedRows.add(rowNum);
+      }
+    }
   }
-  
-  console.log("選択された行番号:", Array.from(selectedRows));
-  
-  // 各行のY列（25列目）からSKUを取得して集計
+
+  if (selectedRows.size === 0) {
+    return {};
+  }
+
+  const rowArray = Array.from(selectedRows);
+  const minRow = Math.min(...rowArray);
+  const maxRow = Math.max(...rowArray);
+  const skuValues = sheet.getRange(minRow, SKU_COLUMN, maxRow - minRow + 1, 1).getValues();
+
   const skuCounts = {};
-  const SKU_COLUMN = 25; // Y列 = 25列目
-  
-  selectedRows.forEach(rowNum => {
-    const sku = sheet.getRange(rowNum, SKU_COLUMN).getValue();
-    
+  for (const rowNum of rowArray) {
+    const sku = skuValues[rowNum - minRow][0];
     if (sku && String(sku).trim() !== "") {
       const skuStr = String(sku).trim();
       skuCounts[skuStr] = (skuCounts[skuStr] || 0) + 1;
-      console.log(`行${rowNum}: SKU="${skuStr}" を取得`);
-    } else {
-      console.log(`行${rowNum}: Y列が空のためスキップ`);
     }
-  });
-  
+  }
+
   console.log("SKU集計完了:", JSON.stringify(skuCounts));
   return skuCounts;
 }
@@ -148,17 +129,8 @@ function spapi_confirmSkus_(skuCounts) {
   message += "------------------------\\n";
   message += `合計: ${Object.keys(skuCounts).length}種類 / ${totalCount}個\\n`;
   
-  console.log("確認ダイアログを表示:", message.replace(/\\n/g, "\n"));
-  
   const response = Browser.msgBox("FBA納品プラン作成確認", message, Browser.Buttons.YES_NO);
-  
-  if (response === "yes") {
-    console.log("ユーザーが「はい」を選択しました");
-    return true;
-  } else {
-    console.log("ユーザーが「いいえ」を選択しました");
-    return false;
-  }
+  return response === "yes";
 }
 
 // ===========================================
@@ -204,26 +176,14 @@ function spapi_createFbaInboundPlan_(skuCounts) {
   // SKU一覧を取得
   const mskus = Object.keys(skuCounts);
   
-  // 1. 全SKUの梱包カテゴリーをNONEで設定
-  console.log("ステップ3-1: 全SKUの梱包カテゴリーをNONEで設定中...");
   spapi_setPrepDetails_(endpoint, accessToken, marketplaceId, mskus);
-  console.log("梱包カテゴリーの設定が完了しました");
-  
-  // 2. 反映を待つ（3秒）
-  const waitSeconds = 3;
-  console.log(`ステップ3-2: 設定反映を待機中（${waitSeconds}秒）...`);
-  Utilities.sleep(waitSeconds * 1000);
-  console.log("待機完了");
-  
-  // 3. 納品プラン作成に進む
-  console.log("ステップ3-3: 納品プラン作成中...");
+  Utilities.sleep(1000);
   
   // リクエストボディを構築
   // 3ヶ月後の日付を計算（消費期限用）
   const expirationDate = new Date();
   expirationDate.setMonth(expirationDate.getMonth() + 3);
   const expiration = Utilities.formatDate(expirationDate, "Asia/Tokyo", "yyyy-MM-dd");
-  console.log("消費期限（3ヶ月後）:", expiration);
   
   // 納品プラン名を生成（日時を含める）
   const now = new Date();
@@ -239,9 +199,6 @@ function spapi_createFbaInboundPlan_(skuCounts) {
     name: planName
   };
   
-  console.log("SP-APIリクエストボディ:", JSON.stringify(requestBody, null, 2));
-  
-  // APIエンドポイント（Fulfillment Inbound API 2024-03-20）
   const apiPath = "/inbound/fba/2024-03-20/inboundPlans";
   const url = endpoint + apiPath;
   
@@ -256,15 +213,9 @@ function spapi_createFbaInboundPlan_(skuCounts) {
     muteHttpExceptions: true
   };
   
-  console.log("SP-API呼び出し URL:", url);
-  
-  // 最初の試行（全てSELLERで送信）
   let response = UrlFetchApp.fetch(url, options);
   let responseCode = response.getResponseCode();
   let responseBody = response.getContentText();
-  
-  console.log("SP-APIレスポンスコード:", responseCode);
-  console.log("SP-APIレスポンスボディ:", responseBody);
   
   // prepOwnerエラーの場合、該当SKUをNONEにしてリトライ
   if (responseCode === 400) {
@@ -288,10 +239,7 @@ function spapi_createFbaInboundPlan_(skuCounts) {
     throw new Error("SP-APIエラー (HTTP " + responseCode + "):\\n" + errorMessage);
   }
   
-  const result = JSON.parse(responseBody);
-  console.log("SP-API呼び出し完了:", JSON.stringify(result));
-  
-  return result;
+  return JSON.parse(responseBody);
 }
 
 // ===========================================
@@ -322,8 +270,6 @@ function spapi_setPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
     mskuPrepDetails: mskuPrepDetails
   };
   
-  console.log("setPrepDetails リクエストボディ:", JSON.stringify(requestBody, null, 2));
-  
   const options = {
     method: "post",
     contentType: "application/json",
@@ -339,13 +285,8 @@ function spapi_setPrepDetails_(endpoint, accessToken, marketplaceId, mskus) {
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
   
-  console.log("setPrepDetails レスポンスコード:", responseCode);
-  console.log("setPrepDetails レスポンスボディ:", responseBody);
-  
   if (responseCode !== 200 && responseCode !== 202) {
-    // エラーの場合はログに記録するが、処理は続行
     console.warn("setPrepDetails APIエラー:", responseBody);
-    // 一部のSKUでエラーが出ても続行するため、例外はスローしない
   }
 }
 
@@ -400,19 +341,14 @@ function spapi_handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoi
       // 例: "ERROR: DHC-2511-0880-1312-1700-B00SY1A5F2 does not require prepOwner but SELLER was assigned"
       const match = error.message.match(/ERROR:\s*(\S+)\s+does not require prepOwner/);
       if (match) {
-        const sku = match[1];
-        console.log("prepOwner不要のSKUを検出:", sku);
-        prepOwnerOverrides[sku] = "NONE";
+        prepOwnerOverrides[match[1]] = "NONE";
         hasPrepOwnerError = true;
       }
     }
     
     if (!hasPrepOwnerError) {
-      console.log("prepOwnerエラーではないため、リトライしません");
       return null;
     }
-    
-    console.log("prepOwnerをNONEに変更してリトライします:", JSON.stringify(prepOwnerOverrides));
     
     // items配列を再構築
     const items = spapi_buildItemsArray_(skuCounts, expiration, prepOwnerOverrides);
@@ -424,8 +360,6 @@ function spapi_handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoi
       name: planName
     };
     
-    console.log("リトライ リクエストボディ:", JSON.stringify(requestBody, null, 2));
-    
     const options = {
       method: "post",
       contentType: "application/json",
@@ -436,14 +370,11 @@ function spapi_handlePrepOwnerError_(responseBody, skuCounts, expiration, endpoi
       payload: JSON.stringify(requestBody),
       muteHttpExceptions: true
     };
-    
+
     const url = endpoint + apiPath;
     const response = UrlFetchApp.fetch(url, options);
     const retryResponseCode = response.getResponseCode();
     const retryResponseBody = response.getContentText();
-    
-    console.log("リトライ レスポンスコード:", retryResponseCode);
-    console.log("リトライ レスポンスボディ:", retryResponseBody);
     
     if (retryResponseCode === 200 || retryResponseCode === 202) {
       return JSON.parse(retryResponseBody);
@@ -470,9 +401,7 @@ function spapi_showResult_(result) {
   if (!inboundPlanId) {
     throw new Error("納品プランIDが取得できませんでした。\\nレスポンス: " + JSON.stringify(result));
   }
-  
-  console.log("納品プランIDを取得しました:", inboundPlanId);
-  
+
   // セラーセントラルの納品プラン画面URL
   // 注意: 実際のURLはAmazonの仕様変更により異なる場合があります
   // 要相談: ログインが必要なため、自動遷移後に再ログインが求められる場合があります
@@ -492,7 +421,6 @@ function spapi_showResult_(result) {
   message += sellerCentralUrl + "\\n\\n";
   message += "「OK」を押すとセラーセントラルを開きます。";
   
-  console.log("結果ダイアログを表示");
   Browser.msgBox("FBA納品プラン作成完了", message, Browser.Buttons.OK);
   
   // セラーセントラルを新しいタブで開く
