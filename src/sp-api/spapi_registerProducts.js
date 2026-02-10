@@ -96,9 +96,9 @@ function spapi_executeRegistration(sheet, accessToken, scriptConfig, processable
 
       if (hasBreakEvenPrice || hasRuleId) {
         try {
-          const minimumPrice = hasBreakEvenPrice ? Math.ceil(breakEvenPrice * 1.1) : null;
+          const minimumPrice = hasBreakEvenPrice ? Math.ceil(breakEvenPrice * 0.9) : null;
           if (hasBreakEvenPrice) {
-            Logger.log("下限価格設定: " + breakEvenPrice + " × 1.1 = " + minimumPrice);
+            Logger.log("下限価格設定: " + breakEvenPrice + " × 0.9 = " + minimumPrice);
           }
           if (hasRuleId) {
             Logger.log("自動価格ルール設定: " + scriptConfig.AUTOMATED_PRICING_RULE_ID);
